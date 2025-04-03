@@ -1,0 +1,7 @@
+{
+	"files.exclude": {
+		"**/Packages": true,
+	},
+	"luau-lsp.sourcemap.rojoProjectFile": "default.project.json",
+	"stylua.targetReleaseVersion": "latest"
+}

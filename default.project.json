@@ -1,0 +1,22 @@
+{
+	"name": "pow",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"pow": {
+				"$path": "src/shared"
+			},
+			"Packages": {
+				"$path": "Packages"
+			}
+		},
+		"ServerScriptService": {
+			"pow": {
+				"$path": "src/server",
+				"shared": {
+					"$path": "src/shared"
+				}
+			}
+		}
+	}
+}
