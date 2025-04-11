@@ -59,11 +59,11 @@ function normalize_function(command, name)
 		command.overloads = {
 			{
 				returns = "any",
-				args = {
+				args = { {
 					name = "any",
 					type = "any",
 					rest = true,
-				},
+				} },
 			},
 		}
 	end

@@ -8,7 +8,7 @@ type Result<T, E> = types.Result<T, E>
 type Suggestion = types.Suggestion
 type Process = types.Process
 
-function comma_separated(type: Type): Type
+function multiple(type: Type): Type
 	return {
 		name = type.name .. "[]",
 		description = type.name .. " separated by commas",
@@ -57,6 +57,21 @@ function comma_separated(type: Type): Type
 				end
 			end
 			else nil,
+	}
+end
+
+function instance_type(name: string, instance_type: string): Type
+	return {
+		name = name,
+		coerce_expression = function(expression: Expression): Result<Instance, string>
+			return { err = "won't convert string to instance of " .. instance_type }
+		end,
+		coerce_value = function(value): Result<Instance, string>
+			if typeof(value) == "Instance" and value:IsA(instance_type) then
+				return { ok = value }
+			end
+			return { err = `cannot coerce {typeof(value)} to ${name}` }
+		end,
 	}
 end
 
@@ -294,6 +309,96 @@ builtin_types.any = {
 		return { ok = value }
 	end,
 }
+builtin_types.table = {
+	name = "table",
+	coerce_expression = function(expression: Expression): Result<any, string>
+		if expression.type == "function" then
+			return { err = "Cannot convert function to table" }
+		elseif expression.type == "string" then
+			return { ok = expression.value:split "," }
+		end
+		error "unreachable"
+	end,
+	coerce_value = function(value): Result<any, string>
+		if typeof(value) == "table" then
+			return { ok = value }
+		end
+		return { err = `cannot coerce {typeof(value)} to table` }
+	end,
+}
+
+builtin_types.cframe = {
+	name = "cframe",
+	coerce_expression = function(expression: Expression): Result<any, string>
+		return { err = "cannot be constructed from expression" }
+	end,
+	coerce_value = function(value): Result<any, string>
+		if typeof(value) == "CFrame" then
+			return { ok = value }
+		elseif typeof(value) == "Vector3" then
+			return { ok = CFrame.new(value) }
+		end
+		return { err = `cannot coerce {typeof(value)} to cframe` }
+	end,
+}
+builtin_types.vector3 = {
+	name = "vector3",
+	coerce_expression = function(expression: Expression): Result<any, string>
+		return { err = "cannot be constructed from expression" }
+	end,
+	coerce_value = function(value): Result<any, string>
+		if typeof(value) == "Vector3" then
+			return { ok = value }
+		elseif typeof(value) == "CFrame" then
+			return { ok = value.Position }
+		end
+		return { err = `cannot coerce {typeof(value)} to vector3` }
+	end,
+}
+builtin_types.instance = {
+	name = "instance",
+	coerce_expression = function(expression: Expression): Result<any, string>
+		return { err = "cannot be constructed from expression" }
+	end,
+	coerce_value = function(value): Result<any, string>
+		if typeof(value) == "Instance" then
+			return { ok = value }
+		end
+		return { err = `cannot coerce {typeof(value)} to instance` }
+	end,
+}
+builtin_types.variable_name = {
+	name = "variable_name",
+	coerce_expression = function(expression: Expression, process: Process): Result<any, string>
+		if expression.type == "string" then
+			return { ok = expression.value }
+		end
+		return { err = "not a string" }
+	end,
+	coerce_value = function(value): Result<any, string>
+		if typeof(value) == "string" then
+			return { ok = value }
+		end
+		return { err = `cannot coerce {typeof(value)} to variable_name` }
+	end,
+	autocomplete = function(text, replace_at, process)
+		local matches = {}
+		for k in pairs(process.global_scope.variables) do
+			if k:sub(1, #text):lower() == text:lower() then
+				table.insert(matches, {
+					replace_at = replace_at,
+					text = k,
+					match_start = 1,
+					match_end = #text,
+				})
+			end
+		end
+		return matches
+	end,
+}
+builtin_types.instances = multiple(builtin_types.instance)
+builtin_types.humanoid = instance_type("humanoid", "Humanoid")
+builtin_types.model = instance_type("model", "Model")
 
 -- just for autocomplete this doesn't actually check anything
 builtin_types.types = {

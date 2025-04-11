@@ -97,11 +97,13 @@ function init(config_: PartialConfig)
 			end
 
 			local success, result = pcall(function()
-				command.server_run {
+				return command.server_run {
+					remote = remote,
 					executor = player,
 					args = coerced_res.ok,
 				}
 			end)
+			print(result)
 			if success then
 				return { ok = result }
 			else

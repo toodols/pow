@@ -1,9 +1,10 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
-
 local parser = require(script.Parent.parser)
 local types = require(script.Parent.types)
 local typing = require(script.typing)
+
+local local_player = Players.LocalPlayer
 
 type Commands = parser.Commands
 type Command = parser.Command
@@ -99,7 +100,7 @@ function run_lua_function(process: Process, fn: (context: Context) -> any, args:
 	local context: Context = {
 		process = process,
 		args = args,
-		executor = nil,
+		executor = local_player,
 		run_function = function(self, value: Function, args_: { any }?)
 			run_function(process, value, args_)
 		end,

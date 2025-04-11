@@ -74,24 +74,37 @@ builtin_commands.bind_tool = {
 	description = "Binds a tool to a function",
 	permissions = { "moderator" },
 	run = function(context)
-		local tool = Instance.new "Tool"
-		tool.Name = context.args[1]
-		tool.RequiresHandle = false
+		local tool = context.args[1]
 		tool.Activated:Connect(function()
-			print(context.args[2])
 			context:run_function(context.args[2], {})
 		end)
-		tool.Parent = Players.LocalPlayer.Backpack
 	end,
 	overloads = {
 		{
 			returns = "nil",
 			args = {
-				{ name = "Name", type = "string" },
+				{ name = "Tool", type = "instance" },
 				{
 					name = "Function",
 					type = "function",
 				},
+			},
+		},
+	},
+}
+
+builtin_commands.index = {
+	description = "Returns the value at the index of a table",
+	permissions = { "math" },
+	run = function(context)
+		return context.args[1][context.args[2]]
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{ name = "Table", type = "table" },
+				{ name = "Index", type = "number" },
 			},
 		},
 	},
@@ -204,16 +217,272 @@ builtin_commands.bring = {
 	},
 }
 
+builtin_commands.hit = {
+	description = "Returns the CFrame under the mouse",
+	permissions = { "moderator" },
+	run = function(context)
+		return Players.LocalPlayer:GetMouse().Hit
+	end,
+	overloads = {
+		{
+			returns = "cframe",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.unlock = {
+	description = "Unlocks players",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local player = context.args[1] or { context.executor }
+		local character = player.Character
+		for _, part in character:GetDescendants() do
+			if part:IsA "BasePart" then
+				part.Locked = false
+			end
+		end
+	end,
+	overloads = {
+		{ returns = "nil", args = { {
+			name = "Target",
+			type = "players",
+		} } },
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.equipped = {
+	description = "Returns the equipped tool",
+	permissions = { "moderator" },
+	run = function(context)
+		return context.executor.Backpack:FindFirstChildWhichIsA "Tool"
+	end,
+	overloads = {
+		{
+			returns = "instance",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.tool = {
+	description = "Creates a tool",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local name = context.args[1]
+		local tool = Instance.new "Tool"
+		tool.Name = name or "Tool"
+		tool.RequiresHandle = false
+		tool.Parent = context.executor.Backpack
+		return tool
+	end,
+	overloads = {
+		{ returns = "instance", args = { {
+			name = "Name",
+			type = "string",
+		} } },
+
+		{
+			returns = "instance",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.time = {
+	description = "Sets the time",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local hour = context.args[1] or 12
+		local minute = context.args[2] or 0
+		local second = context.args[3] or 0
+		game:GetService("Lighting").ClockTime = hour + (minute / 60) + (second / 3600)
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Hour",
+					type = "number",
+				},
+				{
+					name = "Minute",
+					type = "number",
+				},
+				{
+					name = "Second",
+					type = "number",
+				},
+			},
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Hour",
+					type = "number",
+				},
+				{
+					name = "Minute",
+					type = "number",
+				},
+			},
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Hour",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.explosion = {
+	description = "Creates an explosion at the position",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local pos = context.args[1]
+		local explosion = Instance.new "Explosion"
+		explosion.Position = pos
+		explosion.Parent = workspace
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Position",
+					type = "vector3",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.clear_inventory = {
+	description = "Clears the inventory of players",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			local inventory = player.Backpack
+
+			for _, item in inventory:GetChildren() do
+				if item:IsA "Tool" then
+					item:Destroy()
+				end
+			end
+			local character = player.Character
+			for _, item in character:GetChildren() do
+				if item:IsA "Tool" then
+					item:Destroy()
+				end
+			end
+		end
+	end,
+	overloads = {
+		{ returns = "nil", args = { {
+			name = "Target",
+			type = "players",
+		} } },
+	},
+}
+
+builtin_commands.target = {
+	description = "Returns the target of the mouse",
+	permissions = { "moderator" },
+	run = function(context)
+		local mouse = Players.LocalPlayer:GetMouse()
+		return mouse.Target
+	end,
+	overloads = {
+		{
+			returns = "instance",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.destroy = {
+	description = "Destroys an instance",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local instance = context.args[1]
+		if instance then
+			instance:Destroy()
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Instance",
+					type = "instance",
+				},
+			},
+		},
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.clone = {
+	description = "Clones players",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		local c
+		for _, player in players do
+			player.Character.Archivable = true
+			c = player.Character:Clone()
+			c.Parent = player.Character.Parent
+		end
+		return c
+	end,
+	overloads = {
+		{
+			returns = "model",
+			args = {
+				{
+					name = "Targets",
+					type = "players",
+				},
+			},
+		},
+		{
+			returns = "model",
+			args = {},
+		},
+	},
+}
+
 builtin_commands.teleport = {
 	description = "Teleports players",
 	alias = { "tp" },
 	permissions = { "moderator" },
 	server_run = function(context)
 		local players = context.args[1]
-		local pos = context.args[2]
+		local pos
+		if typeof(context.args[2]) == "Instance" then
+			pos = context.args[2].Character:GetPivot()
+		else
+			pos = CFrame.new(context.args[2])
+		end
+
 		for _, player in players do
 			if player.Character then
-				player.Character:PivotTo(pos.Character:GetPivot())
+				player.Character:PivotTo(pos)
 			end
 		end
 	end,
@@ -231,6 +500,43 @@ builtin_commands.teleport = {
 				},
 			},
 		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Targets",
+					type = "players",
+				},
+				{
+					name = "Position",
+					type = "vector3",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.userid = {
+	description = "Returns the userid of the player",
+	permissions = { "moderator" },
+	run = function(context)
+		local player = context.args[1] or context.executor
+		return player.UserId
+	end,
+	overloads = {
+		{
+			returns = "number",
+			args = {
+				{
+					name = "Target",
+					type = "player",
+				},
+			},
+		},
+		{
+			returns = "number",
+			args = {},
+		},
 	},
 }
 
@@ -241,7 +547,7 @@ builtin_commands.blink = {
 	run = function(context)
 		local mouse = Players.LocalPlayer:GetMouse()
 		local pos = mouse.Hit.p
-		Players.LocalPlayer.Character:PivotTo(CFrame.new(pos))
+		Players.LocalPlayer.Character:PivotTo(CFrame.new(pos + Vector3.new(0, 2, 0)))
 	end,
 	overloads = {
 		{
@@ -251,8 +557,38 @@ builtin_commands.blink = {
 	},
 }
 
+builtin_commands.vector3 = {
+	description = "Creates a vector3 from components",
+	permissions = { "moderator" },
+	run = function(context)
+		local x = context.args[1]
+		local y = context.args[2]
+		local z = context.args[3]
+		return Vector3.new(x, y, z)
+	end,
+	overloads = {
+		{
+			returns = "vector3",
+			args = {
+				{
+					name = "X",
+					type = "number",
+				},
+				{
+					name = "Y",
+					type = "number",
+				},
+				{
+					name = "Z",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
 builtin_commands.add = {
-	description = "Adds numbers",
+	description = "Adds numbers ",
 	permissions = { "math" },
 	run = function(context)
 		local sum = 0
@@ -267,6 +603,28 @@ builtin_commands.add = {
 			args = { {
 				name = "Value",
 				type = "number",
+				rest = true,
+			} },
+		},
+	},
+}
+
+builtin_commands.add_vec3 = {
+	description = "Adds vector3",
+	permissions = { "math" },
+	run = function(context)
+		local sum = Vector3.zero
+		for _, arg in context.args do
+			sum = sum + arg
+		end
+		return sum
+	end,
+	overloads = {
+		{
+			returns = "vector3",
+			args = { {
+				name = "Value",
+				type = "vector3",
 				rest = true,
 			} },
 		},
@@ -486,6 +844,33 @@ builtin_commands["false"] = {
 	},
 }
 
+builtin_commands["table"] = {
+	description = "Constructs a table from arguments",
+	permissions = { "math" },
+	run = function(context)
+		local t = {}
+		for _, arg in context.args do
+			table.insert(t, arg)
+		end
+		return t
+	end,
+	overloads = {
+		{
+			returns = "table",
+			args = {},
+		},
+		{
+			returns = "table",
+			args = {
+				{
+					name = "Arguments",
+					type = "any",
+				},
+			},
+		},
+	},
+}
+
 builtin_commands.walkspeed = {
 	description = "Sets the speed of the player",
 	permissions = { "moderator" },
@@ -560,12 +945,23 @@ builtin_commands.wait = {
 }
 
 builtin_commands.loop = {
-	description = "Loops a function",
+	description = "Loops a function indefinitely",
 	permissions = { "control_flow" },
 	run = function(context)
+		local waits = false
 		while true do
+			local t = tick()
 			context:run_function(context.args[1])
-			task.wait()
+			if tick() - t < 1 then
+				if not waits then
+					context:log {
+						type = "info",
+						value = "This loop is too fast. A wait has been added",
+					}
+				end
+				waits = true
+				task.wait()
+			end
 		end
 	end,
 	overloads = {
@@ -579,13 +975,154 @@ builtin_commands.loop = {
 	},
 }
 
+builtin_commands["nil"] = {
+	description = "Returns nil",
+	permissions = { "math" },
+	run = function(context)
+		return nil
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.length = {
+	description = "Returns the length of a table",
+	permissions = { "math" },
+	run = function(context)
+		return #context.args[1]
+	end,
+	overloads = {
+		{
+			returns = "number",
+			args = { {
+				name = "Table",
+				type = "table",
+			} },
+		},
+	},
+}
+
+builtin_commands["set"] = {
+	description = "Sets a variable",
+	permissions = { "moderator" },
+	run = function(context)
+		context.process.global_scope.variables[context.args[1]] = context.args[2]
+		return context.args[2]
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Variable",
+					type = "variable_name",
+				},
+				{
+					name = "Value",
+					type = "any",
+				},
+			},
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Variable",
+					type = "variable_name",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.increment = {
+	description = "Increments a variable",
+	permissions = { "moderator" },
+	run = function(context)
+		local variables = context.process.global_scope.variables
+		local name = context.args[1]
+		variables[name] = variables[name] + 1
+		return variables[name]
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Variable",
+					type = "variable_name",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands["get"] = {
+	description = "Gets a variable",
+	permissions = { "moderator" },
+	run = function(context)
+		return context.process.global_scope.variables[context.args[1]]
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Variable",
+					type = "variable_name",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands["repeat"] = {
+	description = "Repeats a function a number of times",
+	permissions = { "control_flow" },
+	run = function(context)
+		for i = 1, context.args[1] do
+			context:run_function(context.args[2])
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Times",
+					type = "number",
+				},
+				{
+					name = "Body",
+					type = "function",
+				},
+			},
+		},
+	},
+}
+
 builtin_commands["while"] = {
 	description = "Loops a function while a condition is true",
 	permissions = { "control_flow" },
 	run = function(context)
+		local waits = false
 		while context:run_function(context.args[1]) do
+			local t = tick()
 			context:run_function(context.args[2])
-			task.wait()
+			if tick() - t < 1 then
+				if not waits then
+					context:log {
+						type = "info",
+						value = "This loop is too fast. A wait has been added",
+					}
+				end
+				waits = true
+				task.wait()
+			end
 		end
 	end,
 	overloads = {
@@ -599,6 +1136,211 @@ builtin_commands["while"] = {
 				{
 					name = "Body",
 					type = "function",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.class_name = {
+	description = "Gives the class name of an instance",
+	permissions = { "admin" },
+	run = function(context)
+		return context.args[1].ClassName
+	end,
+	overloads = {
+		{
+			returns = "string",
+			args = { {
+				name = "Instance",
+				type = "instance",
+			} },
+		},
+	},
+}
+
+builtin_commands.number = {
+	description = "Creates a number",
+	permissions = { "math" },
+	run = function(context)
+		return context.args[1]
+	end,
+	overloads = {
+		{
+			returns = "number",
+			args = {
+				{
+					name = "Number",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.to_string = {
+	description = "Converts number to string",
+	permissions = { "math" },
+	run = function(context)
+		return context.args[1]
+	end,
+	overloads = {
+		{
+			returns = "string",
+			args = {
+				{
+					name = "Number",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.string = {
+	description = "Creates a string",
+	permissions = { "math" },
+	run = function(context)
+		return context.args[1]
+	end,
+	overloads = {
+		{
+			returns = "string",
+			args = {
+				{
+					name = "String",
+					type = "string",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.player = {
+	description = "Interprets value as a player",
+	permissions = { "moderator" },
+	run = function(context)
+		return context.args[1] or context.executor
+	end,
+	overloads = {
+		{
+			returns = "player",
+			args = {
+				{
+					name = "Player",
+					type = "player",
+				},
+			},
+		},
+		{
+			returns = "player",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.character = {
+	description = "Returns a player's character",
+	permissions = { "moderator" },
+	run = function(context)
+		return context.args[1] or context.executor.Character
+	end,
+	overloads = {
+		{
+			returns = "character",
+			args = {
+				{
+					name = "Player",
+					type = "player",
+				},
+			},
+		},
+		{
+			returns = "character",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.parent = {
+	description = "Returns the parent of an instance",
+	permissions = { "admin" },
+	run = function(context)
+		return context.args[1].Parent
+	end,
+	overloads = {
+		{
+			returns = "instance",
+			args = {
+				{
+					name = "Instance",
+					type = "instance",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.humanoid = {
+	description = "Returns a character's humanoid",
+	permissions = { "moderator" },
+	run = function(context)
+		return context.args[1]:FindFirstChildOfClass "Humanoid"
+	end,
+	overloads = {
+		{
+			returns = "humanoid",
+			args = {
+				{
+					name = "Character",
+					type = "model",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.walk_to = {
+	description = "Makes a player walk to a position",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local humanoid
+		if context.args[1] then
+			if context.args[1]:IsA "Player" then
+				humanoid = context.args[1].Character.Humanoid
+			elseif context.args[1]:IsA "Humanoid" then
+				humanoid = context.args[1]
+			end
+		else
+			humanoid = context.executor.Character.Humanoid
+		end
+		local position = context.args[2]
+		humanoid:MoveTo(position)
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Player",
+					type = "player",
+				},
+				{
+					name = "Position",
+					type = "vector3",
+				},
+			},
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Humanoid",
+					type = "humanoid",
+				},
+				{
+					name = "Position",
+					type = "vector3",
 				},
 			},
 		},
@@ -661,6 +1403,46 @@ builtin_commands.jumppower = {
 	},
 }
 
+builtin_commands.substring = {
+	description = "Returns a substring",
+	permissions = { "math" },
+	run = function(context)
+		return string.sub(context.args[1], context.args[2], context.args[3])
+	end,
+	overloads = {
+		{
+			returns = "string",
+			args = {
+				{
+					name = "String",
+					type = "string",
+				},
+				{
+					name = "Start",
+					type = "number",
+				},
+				{
+					name = "End",
+					type = "number",
+				},
+			},
+		},
+		{
+			returns = "string",
+			args = {
+				{
+					name = "String",
+					type = "string",
+				},
+				{
+					name = "Start",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
 builtin_commands.concat = {
 	description = "Concatenates strings",
 	permissions = { "math" },
@@ -701,17 +1483,35 @@ builtin_commands.mul = {
 	},
 }
 
-builtin_commands.position = {
-	description = "Prints the position of the player",
+builtin_commands.player_cframe = {
+	alias = { "plrcf" },
+	description = "Returns the cframe of the player",
+	permissions = { "debug", "moderator" },
+	run = function(context)
+		local plr = context.args[1] or game.Players.LocalPlayer
+		local cframe = plr.Character:GetPivot()
+		return cframe
+	end,
+	overloads = {
+		{ returns = "nil", args = { {
+			name = "Target",
+			type = "player",
+		} } },
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.player_position = {
+	alias = { "plrpos" },
+	description = "Returns the position of the player",
 	permissions = { "debug", "moderator" },
 	run = function(context)
 		local plr = context.args[1] or game.Players.LocalPlayer
 		local pos = plr.Character:GetPivot().Position
-		context:log {
-			type = "info",
-			at = tick(),
-			value = Vector3.new(pos.X, pos.Y, pos.Z),
-		}
+		return pos
 	end,
 	overloads = {
 		{ returns = "nil", args = { {

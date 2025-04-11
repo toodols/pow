@@ -75,7 +75,7 @@ function coerce_args(
 	overloads: { { args: { Param }, returns: Type } },
 	process: Process
 ): Result<{ any }, string>
-	local fail_reason = { err = "error" }
+	local fail_reason = { err = "no overloads found" }
 	if #overloads == 0 then
 		return {
 			err = "no overloads",

@@ -16,8 +16,9 @@ type Config = types.Config
 type PartialConfig = types.PartialConfig
 
 function init_client(config_: PartialConfig?)
+	local remote
 	if config_ == nil then
-		local remote = ReplicatedStorage:FindFirstChild "Pow"
+		remote = ReplicatedStorage:FindFirstChild "Pow"
 		if not remote or not remote:IsA "RemoteFunction" then
 			return
 		end
@@ -35,14 +36,33 @@ function init_client(config_: PartialConfig?)
 	local commands_to_register = { builtins.builtin_commands }
 	local functions_namespace = { type = "namespace", functions = {} }
 
+	local client_requests: { [string]: (...any) -> any } = {}
+
+	local extras
 	if config.extras then
-		local extras = require(config.extras)()
+		extras = require(config.extras)()
 		if extras.commands then
 			table.insert(commands_to_register, extras.commands)
 		end
 		if extras.types then
 			for name, type in extras.types do
 				registered_types[name] = type
+			end
+		end
+		if extras.client_requests then
+			for name, func in extras.client_requests do
+				client_requests[name] = func
+			end
+		end
+	end
+
+	remote.OnClientInvoke = function(type, data)
+		if type == "client_request" then
+			local func = client_requests[data.type]
+			if func then
+				return func(unpack(data.args))
+			else
+				error("no client request " .. data.type)
 			end
 		end
 	end
@@ -131,6 +151,12 @@ function init_client(config_: PartialConfig?)
 		},
 	}
 	state.ui = ui.init_ui(state)
+
+	if extras and extras.auto_run then
+		for _, command in extras.auto_run do
+			state.submit_command(command)
+		end
+	end
 end
 
 return {
