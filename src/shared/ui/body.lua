@@ -4,17 +4,44 @@ local React = require(ReplicatedStorage.Packages.react)
 local types = require(script.Parent.Parent.types)
 type Process = types.Process
 
-function log_props(props)
-	props.Size = UDim2.new(1, 0, 0, 25)
-	props.TextXAlignment = Enum.TextXAlignment.Left
-	props.TextSize = 16
-	props.RichText = true
-	props.BackgroundTransparency = 1
-	props.FontFace = Font.fromName "SourceSansPro"
-	props.TextColor3 = Color3.fromRGB(255, 255, 255)
-	props.TextEditable = false
-	props.ClearTextOnFocus = false
-	return props
+function Log(props: { left: string, left_color: Color3, right: string })
+	return React.createElement("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+	}, {
+		HorizontalLayout = React.createElement("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 10),
+		}),
+		Left = React.createElement("TextLabel", {
+			Size = UDim2.new(0, 40, 0, 25),
+			-- AutomaticSize = Enum.AutomaticSize.X,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			RichText = true,
+			TextSize = 16,
+			Text = props.left,
+			LayoutOrder = 1,
+			BackgroundTransparency = 1,
+			TextColor3 = props.left_color,
+			FontFace = Font.fromName("SourceSansPro", Enum.FontWeight.Bold),
+		}),
+		Right = React.createElement("TextBox", {
+			Size = UDim2.new(0, 0, 0, 25),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextSize = 16,
+			RichText = true,
+			BackgroundTransparency = 1,
+			FontFace = Font.fromName "SourceSansPro",
+			TextColor3 = Color3.fromRGB(255, 255, 255),
+			TextEditable = false,
+			ClearTextOnFocus = false,
+			LayoutOrder = 2,
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Text = props.right,
+		}),
+	})
 end
 
 function Body(props: { process: Process })
@@ -26,46 +53,38 @@ function Body(props: { process: Process })
 		if log.type == "input" then
 			table.insert(
 				elements,
-				React.createElement(
-					"TextBox",
-					log_props {
-						Text = `<b><font color="#f3f5ca">USER</font></b> <i>{log.value}</i>`,
-						LayoutOrder = i,
-					}
-				)
+				React.createElement(Log, {
+					left_color = Color3.fromRGB(243, 245, 202),
+					left = "USER",
+					right = `{log.value}`,
+				})
 			)
 		elseif log.type == "output" then
 			table.insert(
 				elements,
-				React.createElement(
-					"TextBox",
-					log_props {
-						LayoutOrder = i,
-						Text = `<b><font color="#a3a3a3">OUT</font></b> {log.value}`,
-					}
-				)
+				React.createElement(Log, {
+					left_color = Color3.fromRGB(163, 163, 163),
+					left = `OUT[{log.index}]`,
+					right = `{log.value}`,
+				})
 			)
 		elseif log.type == "error" then
 			table.insert(
 				elements,
-				React.createElement(
-					"TextBox",
-					log_props {
-						LayoutOrder = i,
-						Text = `<b><font color="#d00000">ERROR</font></b> {log.value}`,
-					}
-				)
+				React.createElement(Log, {
+					left_color = Color3.fromRGB(180, 0, 0),
+					left = "ERR",
+					right = `{log.value}`,
+				})
 			)
 		elseif log.type == "info" then
 			table.insert(
 				elements,
-				React.createElement(
-					"TextBox",
-					log_props {
-						LayoutOrder = i,
-						Text = `<b><font color="#FFFFFF">INFO</font></b> {log.value}`,
-					}
-				)
+				React.createElement(Log, {
+					left_color = Color3.fromRGB(231, 231, 231),
+					left = "INFO",
+					right = `{log.value}`,
+				})
 			)
 		end
 	end

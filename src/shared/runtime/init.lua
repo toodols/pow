@@ -29,8 +29,10 @@ function new_process()
 		name = "Tab " .. id,
 		owner = Players.LocalPlayer,
 		global_scope = global_scope,
+		results = {},
 		types = {},
 		history = {},
+		bindings = {},
 		logs = {},
 		on_log_updated = function() end,
 	}
@@ -50,7 +52,7 @@ function run_function(process: Process, fun: Function, args: { any }?): Result<a
 		return run_commands(process, fun.commands, { args = args })
 	elseif fun.type == "lua_function" then
 		if fun.run then
-			return run_lua_function(process, fun.run, args or {})
+			return run_lua_function(process, fun.id, fun.run, args or {})
 		elseif fun.server_run then
 			local pow_remote = ReplicatedStorage.Pow
 			local result =
@@ -96,11 +98,25 @@ function find_function_in_current_scope(scope: Scope, path: string): Result<Func
 	return { err = "what" }
 end
 
-function run_lua_function(process: Process, fn: (context: Context) -> any, args: { any }): Result<any, string>
+function run_lua_function(
+	process: Process,
+	fn_id: string,
+	fn: (context: Context) -> any,
+	args: { any }
+): Result<any, string>
 	local context: Context = {
 		process = process,
 		args = args,
 		executor = local_player,
+		defer = function(self, client_run_data: { any })
+			local pow_remote = ReplicatedStorage.Pow
+			pow_remote:InvokeServer("server_run", {
+				process_id = process.id,
+				function_id = fn_id,
+				client_data = client_run_data,
+				args = args,
+			})
+		end,
 		run_function = function(self, value: Function, args_: { any }?)
 			run_function(process, value, args_)
 		end,
@@ -166,7 +182,7 @@ function run_command(process: Process, command: Command, state: State): Result<a
 end
 
 function run_commands(process: Process, commands: Commands, state: State): Result<any, string>
-	local result
+	local result = { ok = nil } :: Result<any, string>
 	for _, command in commands.list do
 		result = run_command(process, command, state)
 		if result.err then
@@ -181,9 +197,11 @@ function run_root_commands(process: Process, commands: RootCommands)
 
 	local result = run_commands(process, commands, { args = {} })
 	if result.ok ~= nil then
+		table.insert(process.results, result.ok)
 		table.insert(process.logs, {
 			type = "output",
 			value = tostring(result.ok),
+			index = #process.results,
 			at = tick(),
 		})
 	elseif result.err then

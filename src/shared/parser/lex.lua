@@ -88,6 +88,23 @@ local function tkString(text, start)
 	end
 end
 
+local function tkComment(text, start)
+	if text:sub(start, start + 1) ~= "/*" then
+		return
+	end
+
+	local close = text:find("*/", start + 1)
+	if not close then
+		error "unterminated comment"
+	end
+	return {
+		type = "comment",
+		raw = text:sub(start, close + 1),
+		start = start,
+		finish = close + 1,
+	}
+end
+
 local tokenTypes = {
 	tkWhitespace,
 	tkWord,
@@ -100,6 +117,7 @@ local tokenTypes = {
 	tkRightParen,
 	tkComma,
 	tkSemicolon,
+	tkComment,
 	-- tkParam,
 }
 

@@ -101,9 +101,9 @@ function init(config_: PartialConfig)
 					remote = remote,
 					executor = player,
 					args = coerced_res.ok,
+					client_data = data.client_data,
 				}
 			end)
-			print(result)
 			if success then
 				return { ok = result }
 			else

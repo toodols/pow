@@ -111,9 +111,7 @@ function CommandBar(props: {
 		local x = 30 + TextService:GetTextSize(input.Text, input.TextSize, input.Font, input.AbsoluteSize).X
 		set_offset(x)
 		local succ, res, parser_state = parser.parse(input.Text)
-		if parser_state == nil then
-			return
-		end
+		
 		local fail_state = parser_state.failState
 		if not fail_state then
 			set_error {
@@ -183,7 +181,17 @@ function CommandBar(props: {
 					return
 				end
 			end
-			local arg = infer_res.ok.args[fail_state.argNum]
+			local arg
+			local overload_args = infer_res.ok.args
+			local rest = false
+			if overload_args[fail_state.argNum] then
+				arg = overload_args[fail_state.argNum]
+			elseif overload_args[#overload_args] then
+				if overload_args[#overload_args].rest then
+					rest = true
+					arg = overload_args[#overload_args]
+				end
+			end
 			if arg == nil then
 				return
 			end
@@ -191,7 +199,7 @@ function CommandBar(props: {
 			if ty_obj.autocomplete == nil then
 				set_autocomplete {
 					enabled = true,
-					title = arg.name,
+					title = if rest then `{arg.name} [+ {fail_state.argNum - #overload_args}]` else arg.name,
 					description = arg.description,
 					type = arg.type,
 					aside_title = func.ok.name,
@@ -202,7 +210,7 @@ function CommandBar(props: {
 			end
 
 			local arg_at_num = fail_state.args[fail_state.argNum]
-			local replace_at = if arg_at_num then arg_at_num.start else fail_state.finish + 1
+			local replace_at = if arg_at_num then arg_at_num.start else parser_state.finish + 1
 			local text
 			if arg_at_num then
 				if arg_at_num.type == "string" then

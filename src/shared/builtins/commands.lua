@@ -1,6 +1,6 @@
 local Players = game:GetService "Players"
+local InsertService = game:GetService "InsertService"
 local types = require(script.Parent.Parent.types)
-
 type Context = types.Context
 
 local builtin_commands: {
@@ -20,10 +20,16 @@ builtin_commands.print = {
 	description = "prints a message to console.",
 	permissions = { "debug" },
 	run = function(context)
+		local msg = context.args[1]
+		for i = 2, #context.args do
+			if context.args[i] then
+				msg = tostring(msg) .. " " .. tostring(context.args[i])
+			end
+		end
 		context:log {
 			type = "info",
 			at = tick(),
-			value = table.concat(context.args, " "),
+			value = msg,
 		}
 		print(unpack(context.args))
 	end,
@@ -154,6 +160,217 @@ builtin_commands.gear = {
 	},
 }
 
+builtin_commands.unshirt = {
+	description = "Removes a player's shirt",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			local character = player.Character
+			local shirt = character:FindFirstChildOfClass "Shirt"
+			if shirt then
+				shirt:Destroy()
+			end
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Targets",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.shirt = {
+	description = "Sets a player's a shirt",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players
+		local id
+		if #context.args == 1 then
+			players = { context.executor }
+			id = context.args[1]
+		else
+			players = context.args[1]
+			id = context.args[2]
+		end
+
+		local template = InsertService:LoadAsset(id):FindFirstChildOfClass "Shirt"
+
+		for _, player in players do
+			local character = player.Character
+			local shirt = character:FindFirstChildOfClass "Shirt"
+			if not shirt then
+				shirt = Instance.new "Shirt"
+				shirt.Parent = character
+			end
+			shirt.ShirtTemplate = template.ShirtTemplate
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Shirt Id",
+				type = "number",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Targets",
+					type = "players",
+				},
+				{
+					name = "Shirt Id",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.forcefield = {
+	alias = { "ff" },
+	description = "Gives players a forcefield",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			local character = player.Character
+			local forcefield = Instance.new "ForceField"
+			forcefield.Parent = character
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Targets",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.unforcefield = {
+	alias = { "unff" },
+	description = "Removes all forcefields from players",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			local character = player.Character
+			for _, forcefield in character:GetChildren() do
+				if forcefield:IsA "ForceField" then
+					forcefield:Destroy()
+				end
+			end
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Targets",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.unpants = {
+	description = "Removes a player's pants",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			local character = player.Character
+			local pants = character:FindFirstChildOfClass "Pants"
+			if pants then
+				pants:Destroy()
+			end
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Targets",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+builtin_commands.pants = {
+	description = "Sets a player's pants",
+	permissions = { "moderator" },
+	server_run = function(context)
+		local players
+		local id
+		if #context.args == 1 then
+			players = { context.executor }
+			id = context.args[1]
+		else
+			players = context.args[1]
+			id = context.args[2]
+		end
+		local template = InsertService:LoadAsset(id):FindFirstChildOfClass "Pants"
+		for _, player in players do
+			local character = player.Character
+			local pants = character:FindFirstChildOfClass "Pants"
+			if not pants then
+				pants = Instance.new "Pants"
+				pants.Parent = character
+			end
+			pants.PantsTemplate = template.PantsTemplate
+		end
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Pants Id",
+				type = "number",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Targets",
+					type = "players",
+				},
+				{
+					name = "Pants Id",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
 builtin_commands.to = {
 	description = "Teleports you to a player",
 	permissions = { "moderator" },
@@ -270,7 +487,7 @@ builtin_commands.equipped = {
 }
 
 builtin_commands.tool = {
-	description = "Creates a tool",
+	description = "Creates an empty tool",
 	permissions = { "moderator" },
 	server_run = function(context)
 		local name = context.args[1]
@@ -411,9 +628,49 @@ builtin_commands.target = {
 	},
 }
 
+builtin_commands.out = {
+	description = "Returns the value of the nth result",
+	permissions = {},
+	run = function(context)
+		return context.process.results[context.args[1]]
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Index",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
+builtin_commands.view = {
+	description = "Sets camera to view target",
+	permissions = { "moderator" },
+	run = function(context)
+		local target = context.args[1]
+		local camera = workspace.CurrentCamera
+		camera.CameraSubject = target.Character.Humanoid
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Target",
+					type = "player",
+				},
+			},
+		},
+	},
+}
+
 builtin_commands.destroy = {
 	description = "Destroys an instance",
-	permissions = { "moderator" },
+	permissions = { "admin" },
 	server_run = function(context)
 		local instance = context.args[1]
 		if instance then
@@ -1045,6 +1302,9 @@ builtin_commands.increment = {
 	run = function(context)
 		local variables = context.process.global_scope.variables
 		local name = context.args[1]
+		if not variables[name] then
+			variables[name] = 0
+		end
 		variables[name] = variables[name] + 1
 		return variables[name]
 	end,
@@ -1182,7 +1442,7 @@ builtin_commands.to_string = {
 	description = "Converts number to string",
 	permissions = { "math" },
 	run = function(context)
-		return context.args[1]
+		return tostring(context.args[1])
 	end,
 	overloads = {
 		{
@@ -1300,19 +1560,19 @@ builtin_commands.humanoid = {
 	},
 }
 
-builtin_commands.walk_to = {
-	description = "Makes a player walk to a position",
+builtin_commands.move_to = {
+	description = "Makes a character move to a position",
 	permissions = { "moderator" },
 	server_run = function(context)
 		local humanoid
 		if context.args[1] then
 			if context.args[1]:IsA "Player" then
-				humanoid = context.args[1].Character.Humanoid
-			elseif context.args[1]:IsA "Humanoid" then
-				humanoid = context.args[1]
+				humanoid = context.args[1].Character:FindFirstChildOfClass "Humanoid"
+			elseif context.args[1]:IsA "Model" then
+				humanoid = context.args[1]:FindFirstChildOfClass "Humanoid"
 			end
 		else
-			humanoid = context.executor.Character.Humanoid
+			humanoid = context.executor.Character:FindFirstChildOfClass "Humanoid"
 		end
 		local position = context.args[2]
 		humanoid:MoveTo(position)
@@ -1335,8 +1595,8 @@ builtin_commands.walk_to = {
 			returns = "nil",
 			args = {
 				{
-					name = "Humanoid",
-					type = "humanoid",
+					name = "Character",
+					type = "Model",
 				},
 				{
 					name = "Position",
@@ -1457,6 +1717,32 @@ builtin_commands.concat = {
 				type = "string",
 				rest = true,
 			} },
+		},
+	},
+}
+
+builtin_commands.bind = {
+	description = "Binds a function to a key",
+	permissions = { "moderator" },
+	run = function(context)
+		table.insert(context.process.bindings, {
+			key = context.args[1],
+			func = context.args[2],
+		})
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Key",
+					type = "keycode",
+				},
+				{
+					name = "Function",
+					type = "function",
+				},
+			},
 		},
 	},
 }

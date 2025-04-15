@@ -78,7 +78,7 @@ function coerce_args(
 	local fail_reason = { err = "no overloads found" }
 	if #overloads == 0 then
 		return {
-			err = "no overloads",
+			err = "this function has zero overloads",
 		}
 	end
 	for _, overload in overloads do

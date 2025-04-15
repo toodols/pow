@@ -78,8 +78,16 @@ local Parser = {}
 Parser.__index = Parser
 function Parser.new(tokens)
 	local self = setmetatable({}, Parser)
-
-	self.tokens = tokens
+	self.tokens = {}
+	for _, token in tokens do
+		if token.type ~= "whitespace" and token.type ~= "comment" then
+			table.insert(self.tokens, token)
+		end
+	end
+	self.finish = 0
+	if tokens[#tokens] then
+		self.finish = tokens[#tokens].finish
+	end
 	self.index = 1
 	self.failState = nil
 
@@ -102,16 +110,6 @@ function Parser:expectToken(tokenType, failState)
 	return token
 end
 
-function Parser:optionalToken(tokenType)
-	if self:nextIs(tokenType) then
-		self:forward()
-	end
-end
-
-function Parser:forward()
-	self.index = self.index + 1
-end
-
 function Parser:nextIs(...): boolean
 	if self.tokens[self.index] == nil then
 		return false
@@ -123,9 +121,11 @@ function Parser:nextIs(...): boolean
 	end
 	return false
 end
+
 function Parser:getPos(): number
 	return if self.tokens[self.index] then self.tokens[self.index].start else 0
 end
+
 function Parser:getFinish(): number
 	if self.tokens[self.index - 1] then
 		return self.tokens[self.index - 1].finish
@@ -143,10 +143,7 @@ function Parser:parseCommands(): Commands
 		if self:nextIs "word" then
 			table.insert(list, self:parseCommand())
 			if self:nextIs "semicolon" then
-				self:forward()
-				if self:nextIs "whitespace" then
-					self:forward()
-				end
+				self:expectToken "semicolon"
 				trailing_semi = true
 			else
 				trailing_semi = false
@@ -177,10 +174,9 @@ end
 
 function Parser:parseFunction(): Function
 	local token = self:expectToken "leftBracket"
-	self:optionalToken "whitespace"
 	local commands = self:parseCommands()
-	self:optionalToken "whitespace"
 	self:expectToken "rightBracket"
+	self.failState = nil
 	return {
 		type = "function",
 		commands = commands,
@@ -193,6 +189,7 @@ function Parser:parseSubcall(): Subcall
 	local token = self:expectToken "leftParen"
 	local commands = self:parseCommands()
 	self:expectToken "rightParen"
+	self.failState = nil
 	return {
 		type = "subcall",
 		commands = commands,
@@ -224,81 +221,69 @@ function Parser:parseCommand(): Node<Command>
 		start = path.start,
 		finish = self:getFinish(),
 	}
-	if self:nextIs "whitespace" then
-		self:forward()
+
+	while true do
+		if self.finish ~= self:getFinish() then
+			self.failState = {
+				type = "commandArguments",
+				path = path,
+				args = args,
+				argNum = #args + 1,
+				finish = self:getFinish(),
+			}
+		end
+		if self:nextIs "word" then
+			local word = self:expectToken "word"
+			-- if word.raw:match("^%d+$") then
+			-- 	table.insert(args, {
+			-- 		type = "number",
+			-- 		value = tonumber(word.raw),
+			-- 		start = word.start,
+			-- 		finish = word.finish,
+			-- 	})
+			-- else
+			table.insert(args, {
+				type = "string",
+				quoted = false,
+				value = word.raw,
+				start = word.start,
+				finish = word.finish,
+			})
+			-- end
+		elseif self:nextIs "unquotedString" then
+			local token = self:expectToken "unquotedString"
+			table.insert(args, {
+				type = "string",
+				quoted = false,
+				value = token.raw,
+				start = token.start,
+				finish = token.finish,
+			})
+		elseif self:nextIs "number" then
+			local number = self:expectToken "number"
+			table.insert(args, {
+				type = "string",
+				quoted = false,
+				value = number.raw,
+				start = number.start,
+				finish = number.finish,
+			})
+		elseif self:nextIs "string" then
+			table.insert(args, self:parseString())
+		elseif self:nextIs "leftBracket" then
+			table.insert(args, self:parseFunction())
+		elseif self:nextIs "leftParen" then
+			table.insert(args, self:parseSubcall())
+		else
+			break
+		end
 		self.failState = {
 			type = "commandArguments",
 			path = path,
 			args = args,
-			argNum = #args + 1,
+			argNum = #args,
 			finish = self:getFinish(),
 		}
-		while true do
-			if self:nextIs "word" then
-				local word = self:expectToken "word"
-				-- if word.raw:match("^%d+$") then
-				-- 	table.insert(args, {
-				-- 		type = "number",
-				-- 		value = tonumber(word.raw),
-				-- 		start = word.start,
-				-- 		finish = word.finish,
-				-- 	})
-				-- else
-				table.insert(args, {
-					type = "string",
-					quoted = false,
-					value = word.raw,
-					start = word.start,
-					finish = word.finish,
-				})
-				-- end
-			elseif self:nextIs "unquotedString" then
-				local token = self:expectToken "unquotedString"
-				table.insert(args, {
-					type = "string",
-					quoted = false,
-					value = token.raw,
-					start = token.start,
-					finish = token.finish,
-				})
-			elseif self:nextIs "number" then
-				local number = self:expectToken "number"
-				table.insert(args, {
-					type = "string",
-					quoted = false,
-					value = number.raw,
-					start = number.start,
-					finish = number.finish,
-				})
-			elseif self:nextIs "string" then
-				table.insert(args, self:parseString())
-			elseif self:nextIs "leftBracket" then
-				table.insert(args, self:parseFunction())
-			elseif self:nextIs "leftParen" then
-				table.insert(args, self:parseSubcall())
-			else
-				break
-			end
-			if self:nextIs "whitespace" then
-				self:forward()
-				self.failState = {
-					type = "commandArguments",
-					path = path,
-					args = args,
-					argNum = #args + 1,
-					finish = self:getFinish(),
-				}
-			else
-				self.failState = {
-					type = "commandArguments",
-					path = path,
-					args = args,
-					argNum = #args,
-					finish = self:getFinish(),
-				}
-				break
-			end
-		end
 	end
 	return {
 		type = "command",
@@ -319,6 +304,10 @@ local function parse(commandText, finishPos): (boolean, RootCommands, Parser)
 	end
 	local s2, result = pcall(function()
 		local res = parser:parseCommands()
+		if parser.index ~= #parser.tokens + 1 then
+			parser.failState = nil
+			error("expected EOF but found " .. parser.tokens[parser.index].type)
+		end
 		res.raw = commandText
 		return res
 	end)
