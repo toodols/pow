@@ -1,10 +1,8 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local StarterPlayer = game:GetService "StarterPlayer"
-local Players = game:GetService "Players"
 local DataStoreService = game:GetService "DataStoreService"
 
 local shared = script.shared
-local builtins = require(script.shared.builtins)
 local util = require(script.shared.util)
 local runtime = require(script.shared.runtime)
 local types = require(script.shared.types)
@@ -40,6 +38,9 @@ function init(config_: PartialConfig)
 	local remote = Instance.new "RemoteFunction"
 	remote.Parent = ReplicatedStorage
 	remote.Name = "Pow"
+
+	-- have the remote ready before requiring builtins
+	local builtins = require(script.shared.builtins)
 
 	local config = config_ :: Config
 	if config == nil then

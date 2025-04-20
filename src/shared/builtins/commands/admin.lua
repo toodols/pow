@@ -8,6 +8,7 @@ local types = require(script.Parent.Parent.Parent.types)
 type Config = types.Config
 
 local pow_remote = ReplicatedStorage:FindFirstChild "Pow"
+
 local commands = {}
 commands.view_permissions = {
 	description = "Display all permissions",
@@ -55,7 +56,7 @@ commands.set_permission = {
 		end
 
 		local executor = context.executor
-		local target = context.args[1]
+		local target: Player = context.args[1]
 		if not util.compare_ranks(context.config.permissions, executor, target) then
 			error "You can't set this player's permission"
 		end
@@ -76,13 +77,9 @@ commands.set_permission = {
 		if not util.compare_ranks(context.config.permissions, executor, rank) then
 			error "You can't set this rank"
 		end
-		util.set_permission(context.config.permissions, target, target_permission, rank)
-		save_user_permission(context.config, target)
-		pow_remote:InvokeClient(
-			Players:GetPlayerByUserId(target),
-			"config_updated",
-			util.serialize_config(context.config, target_permission)
-		)
+		util.set_permission(context.config.permissions, target.UserId, target_permission, rank)
+		save_user_permission(context.config, target.UserId)
+		pow_remote:InvokeClient(target, "config_updated", util.serialize_config(context.config, target_permission))
 	end,
 	overloads = {
 		{
