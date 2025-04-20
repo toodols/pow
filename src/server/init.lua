@@ -1,5 +1,8 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local StarterPlayer = game:GetService "StarterPlayer"
+local Players = game:GetService "Players"
+local DataStoreService = game:GetService "DataStoreService"
+
 local shared = script.shared
 local builtins = require(script.shared.builtins)
 local util = require(script.shared.util)
@@ -9,6 +12,29 @@ local types = require(script.shared.types)
 type PartialConfig = types.PartialConfig
 type Config = types.Config
 type Process = types.Process
+
+function load_permissions(config: Config)
+	if config.disable_data_store then
+		return
+	end
+	local data_store = DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
+
+	local permissions = data_store:GetAsync "permissions"
+	if permissions then
+		for permission, ranks in permissions do
+			if permission == "root" or permission == "normal" then
+				continue
+			end
+			for userid, rank in ranks do
+				local cur_permission, cur_rank = util.get_user_permission_and_rank(config.permissions, userid)
+				if cur_permission == "normal" or cur_permission == permission and cur_rank < rank then
+					config.permissions[permission] = config.permissions[permission] or {}
+					config.permissions[permission][userid] = rank
+				end
+			end
+		end
+	end
+end
 
 function init(config_: PartialConfig)
 	local remote = Instance.new "RemoteFunction"
@@ -30,15 +56,13 @@ function init(config_: PartialConfig)
 		shared_root.Name = "pow"
 	end
 
-	local extras_script
 	if config.extras then
-		extras_script = config.extras:Clone()
-		extras_script.Parent = ReplicatedStorage
+		config.replicated_extras = config.extras:Clone()
+		config.replicated_extras.Parent = shared_root
+		config.replicated_extras.Name = "replicated_extras"
 	end
 
-	local registered_types = table.clone(builtins.builtin_types)
-
-	local expanded_permission_types = util.expand_permissions(builtins.builtin_permission_types)
+	load_permissions(config)
 
 	local commands = {}
 	for name, command in builtins.builtin_commands do
@@ -58,20 +82,30 @@ function init(config_: PartialConfig)
 		end
 	end
 
+	local registered_types = table.clone(builtins.builtin_types)
 	if extras.types then
 		for name, type in extras.types do
 			registered_types[name] = type
 		end
 	end
 
+	config.permission_types = {}
+	if extras.permission_types then
+		for name, type in extras.permission_types do
+			config.permission_types[name] = type
+		end
+	end
+	for name, type in builtins.builtin_permission_types do
+		config.permission_types[name] = type
+	end
+
+	config.expanded_permission_types = util.expand_permissions(config.permission_types)
+
 	remote.OnServerInvoke = function(player, type, data)
 		local user_permission = util.get_user_permission_and_rank(config.permissions, player.UserId)
-		local user_expanded_permission = expanded_permission_types[user_permission]
+		local user_expanded_permission = config.expanded_permission_types[user_permission]
 		if type == "get_config" then
-			return {
-				user_permissions = user_expanded_permission,
-				extras = extras_script,
-			}
+			return util.serialize_config(config, user_permission)
 		elseif type == "telemetry" then
 			print "got telemetry"
 		elseif type == "server_run" then
@@ -102,6 +136,7 @@ function init(config_: PartialConfig)
 					executor = player,
 					args = coerced_res.ok,
 					client_data = data.client_data,
+					config = config,
 				}
 			end)
 			if success then

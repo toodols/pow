@@ -1,4 +1,7 @@
-function expand_permissions(permissions)
+local types = require(script.Parent.types)
+type Config = types.Config
+
+function expand_permissions(permissions: { [string]: { string } })
 	local expanded = {}
 
 	local function resolve(key, visited)
@@ -10,7 +13,7 @@ function expand_permissions(permissions)
 		visited[key] = true
 		local result = { [key] = true }
 
-		for _, dep in (permissions[key] or {}) do
+		for _, dep in (permissions[key] or {} :: { string }) do
 			if not visited[dep] then
 				local sub_result = resolve(dep, visited)
 				for k in sub_result do
@@ -27,7 +30,28 @@ function expand_permissions(permissions)
 		resolve(key)
 	end
 
+	for key in permissions do
+		expanded.root[key] = true
+	end
+
 	return expanded
+end
+
+function set_permission(
+	permissions: { [string]: { [string]: number } },
+	userid: number,
+	permission: string,
+	rank: number
+)
+	-- find and remove user from permissions
+	for p, entries in permissions do
+		if entries[tostring(userid)] ~= nil then
+			permissions[p][tostring(userid)] = nil
+		end
+	end
+	-- add user to permission
+	permissions[permission] = permissions[permission] or {}
+	permissions[permission][tostring(userid)] = rank
 end
 
 -- {[Permission]: {[UserId]: Rank}}
@@ -69,9 +93,40 @@ function normalize_function(command, name)
 	end
 end
 
+-- a root player outranks everyone, as well as itself
+function compare_ranks(permissions, player1: Player, player2: Player | number): boolean
+	if player1 == player2 then
+		return true
+	end
+	local player1_permission, player1_rank = get_user_permission_and_rank(permissions, player1.UserId)
+
+	local player2_rank
+	local player2_permission
+	if type(player2) == "number" then
+		player2_rank = player2
+	else
+		player2_permission, player2_rank = get_user_permission_and_rank(permissions, player2.UserId)
+	end
+	return player1_permission == "root" or (player2_permission ~= "root") and player1_rank > player2_rank
+end
+
+function serialize_config(config: Config, user_permission: string)
+	local serialized_config = {
+		user_permissions = config.expanded_permission_types[user_permission],
+		extras = config.replicated_extras,
+	}
+	if has_permission({ "view_permissions" }, config.expanded_permission_types[user_permission]) then
+		serialized_config.permissions = config.permissions
+	end
+	return serialized_config
+end
+
 return {
 	expand_permissions = expand_permissions,
 	has_permission = has_permission,
 	get_user_permission_and_rank = get_user_permission_and_rank,
 	normalize_function = normalize_function,
+	set_permission = set_permission,
+	compare_ranks = compare_ranks,
+	serialize_config = serialize_config,
 }

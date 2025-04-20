@@ -3,7 +3,7 @@ local Players = game:GetService "Players"
 local parser = require(script.Parent.parser)
 local types = require(script.Parent.types)
 local typing = require(script.typing)
-
+local util = require(script.Parent.util)
 local local_player = Players.LocalPlayer
 
 type Commands = parser.Commands
@@ -31,10 +31,37 @@ function new_process()
 		global_scope = global_scope,
 		results = {},
 		types = {},
+		config = {} :: any,
 		history = {},
 		bindings = {},
 		logs = {},
 		on_log_updated = function() end,
+		run_command_ast = function(self, commands: RootCommands)
+			table.insert(self.history, commands.raw)
+			table.insert(self.logs, {
+				type = "input",
+				value = commands,
+				at = tick(),
+			})
+			run_root_commands(self, commands)
+		end,
+		run_command = function(self, command_text: string)
+			table.insert(self.history, command_text)
+			local parse_success, result, parse_state = parser.parse(command_text)
+			table.insert(self.logs, {
+				type = "input",
+				value = command_text,
+				at = tick(),
+			})
+			if not parse_success then
+				table.insert(self.logs, {
+					type = "error",
+					value = result,
+					at = tick(),
+				})
+			end
+			run_root_commands(self, result)
+		end,
 	}
 	return process
 end
@@ -108,6 +135,8 @@ function run_lua_function(
 		process = process,
 		args = args,
 		executor = local_player,
+		config = process.config,
+		-- defers a command to run on the server now
 		defer = function(self, client_run_data: { any })
 			local pow_remote = ReplicatedStorage.Pow
 			pow_remote:InvokeServer("server_run", {
@@ -118,8 +147,10 @@ function run_lua_function(
 			})
 		end,
 		run_function = function(self, value: Function, args_: { any }?)
-			run_function(process, value, args_)
+			return run_function(process, value, args_)
 		end,
+
+
 		log = function(self, log: Log)
 			table.insert(process.logs, log)
 			process.on_log_updated()
@@ -148,19 +179,19 @@ function run_command(process: Process, command: Command, state: State): Result<a
 
 	local fun = fun_res.ok
 	local args = {}
-	for _, arg in command.args do
+	for i, arg in command.args do
 		if arg.type == "subcall" then
 			-- consideration
 			-- if I have a function like this: { if (eq (var 1) 1) { print "first arg == 1" }}
 			-- a subcall shouldn't have a new state and it should inherit the state from the parent
 			local result = run_commands(process, arg.commands, state)
 			if result.err == nil then
-				table.insert(args, result.ok)
+				args[i] = result.ok
 			else
 				return result
 			end
 		else
-			table.insert(args, typing.tag_expression(arg))
+			args[i] = typing.tag_expression(arg)
 		end
 	end
 	if fun.overloads == nil or #fun.overloads == 0 then

@@ -114,7 +114,7 @@ function Parser:nextIs(...): boolean
 	if self.tokens[self.index] == nil then
 		return false
 	end
-	for _, v in pairs { ... } do
+	for _, v in { ... } do
 		if self.tokens[self.index].type == v then
 			return true
 		end

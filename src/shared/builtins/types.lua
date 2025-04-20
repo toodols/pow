@@ -383,7 +383,7 @@ builtin_types.variable_name = {
 	end,
 	autocomplete = function(text, replace_at, process)
 		local matches = {}
-		for k in pairs(process.global_scope.variables) do
+		for k in process.global_scope.variables do
 			if k:sub(1, #text):lower() == text:lower() then
 				table.insert(matches, {
 					replace_at = replace_at,
@@ -415,6 +415,34 @@ builtin_types.types = {
 		return { ok = value }
 	end,
 	autocomplete = { "any", "string", "number", "boolean", "function", "player", "players" },
+}
+builtin_types.permission = {
+	name = "permission",
+	coerce_expression = function(expression: Expression): Result<any, string>
+		if expression.type == "function" then
+			return { err = "not a string" }
+		elseif expression.type == "string" then
+			return { ok = expression.value }
+		end
+		error "unreachable"
+	end,
+	coerce_value = function(value): Result<any, string>
+		return { ok = value }
+	end,
+	autocomplete = function(text, replace_at, process)
+		local matches = {}
+		for k in (process.config.expanded_permission_types or process.config.user_permissions) do
+			if k:sub(1, #text):lower() == text:lower() then
+				table.insert(matches, {
+					replace_at = replace_at,
+					text = k,
+					match_start = 1,
+					match_end = #text,
+				})
+			end
+		end
+		return matches
+	end,
 }
 
 return {

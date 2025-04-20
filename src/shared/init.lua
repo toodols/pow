@@ -3,70 +3,17 @@ local Players = game:GetService "Players"
 
 local ui = require(script.ui)
 local runtime = require(script.runtime)
-local parser = require(script.parser)
 local types = require(script.types)
 local builtins = require(script.builtins)
 local util = require(script.util)
-
-local local_player = Players.LocalPlayer
 
 type PowClient = types.PowClient
 type Type = types.Type
 type Config = types.Config
 type PartialConfig = types.PartialConfig
 
-function init_client(config_: PartialConfig?)
-	local remote
-	if config_ == nil then
-		remote = ReplicatedStorage:FindFirstChild "Pow"
-		if not remote or not remote:IsA "RemoteFunction" then
-			return
-		end
-		config_ = remote:InvokeServer "get_config"
-		print("get_config", config_)
-	end
-	if config_ == nil then
-		config_ = {}
-	end
-
-	local config = config_ :: Config
-	local user_permissions = config.user_permissions
-
-	local registered_types = table.clone(builtins.builtin_types)
-	local commands_to_register = { builtins.builtin_commands }
-	local functions_namespace = { type = "namespace", functions = {} }
-
-	local client_requests: { [string]: (...any) -> any } = {}
-
-	local extras
-	if config.extras then
-		extras = require(config.extras)()
-		if extras.commands then
-			table.insert(commands_to_register, extras.commands)
-		end
-		if extras.types then
-			for name, type in extras.types do
-				registered_types[name] = type
-			end
-		end
-		if extras.client_requests then
-			for name, func in extras.client_requests do
-				client_requests[name] = func
-			end
-		end
-	end
-
-	remote.OnClientInvoke = function(type, data)
-		if type == "client_request" then
-			local func = client_requests[data.type]
-			if func then
-				return func(unpack(data.args))
-			else
-				error("no client request " .. data.type)
-			end
-		end
-	end
-
+function reload_commands(functions_namespace, commands_to_register, user_permissions)
+	functions_namespace.functions = {}
 	for _, commands in commands_to_register do
 		for name, command in commands do
 			if command.permissions then
@@ -88,9 +35,84 @@ function init_client(config_: PartialConfig?)
 		end
 	end
 
+	return functions_namespace
+end
+
+function init_client(config_: PartialConfig?)
+	local remote
+	if config_ == nil then
+		remote = ReplicatedStorage:FindFirstChild "Pow"
+		if not remote or not remote:IsA "RemoteFunction" then
+			return
+		end
+		config_ = remote:InvokeServer "get_config"
+		print("get_config", config_)
+	end
+	if config_ == nil then
+		config_ = {}
+	end
+
+	local config = config_ :: Config
+
+	local registered_types = table.clone(builtins.builtin_types)
+	local commands_to_register = { builtins.builtin_commands }
+	local functions_namespace = { type = "namespace", functions = {} }
+
+	local client_requests: { [string]: (...any) -> any } = {}
+
 	local state = { tabs = {} } :: PowClient
+
+	local extras
+	if config.extras then
+		extras = require(config.extras)()
+		if extras.commands then
+			table.insert(commands_to_register, extras.commands)
+		end
+		if extras.types then
+			for name, type in extras.types do
+				registered_types[name] = type
+			end
+		end
+		if extras.client_requests then
+			for name, func in extras.client_requests do
+				client_requests[name] = func
+			end
+		end
+	end
+
+	reload_commands(functions_namespace, commands_to_register, config.user_permissions)
+
+	remote.OnClientInvoke = function(type, data)
+		if type == "client_request" then
+			local func = client_requests[data.type]
+			if func then
+				return func(unpack(data.args))
+			else
+				error("no client request " .. data.type)
+			end
+		elseif type == "run_command" then
+			local process = state.tabs[state.current_tab]
+			if data["function"] then
+				if data["function"].type == "custom_command" then
+					process:run_command_ast(data["function"])
+				else
+					error "cant"
+				end
+			elseif data.command_text then
+				process:run_command(data.command_text)
+			end
+		elseif type == "config_updated" then
+			config.user_permissions = data.user_permissions
+			config.permissions = data.permissions
+
+			reload_commands(functions_namespace, commands_to_register, config.user_permissions)
+		end
+		return
+	end
+
 	local function new_process()
 		local process = runtime.new_process()
+		process.config = config
 		process.global_scope.functions = functions_namespace
 		process.types = registered_types
 
@@ -120,22 +142,7 @@ function init_client(config_: PartialConfig?)
 	end
 	state.submit_command = function(command_text: string)
 		local current_process = state.tabs[state.current_tab]
-		local parse_success, result, parse_state = parser.parse(command_text)
-		table.insert(current_process.history, command_text)
-		table.insert(current_process.logs, {
-			type = "input",
-			value = command_text,
-			at = tick(),
-		})
-		if parse_success then
-			runtime.run_root_commands(current_process, result)
-		else
-			table.insert(current_process.logs, {
-				type = "error",
-				value = result,
-				at = tick(),
-			})
-		end
+		current_process:run_command(command_text)
 		state.ui.update(state)
 	end
 
@@ -144,10 +151,6 @@ function init_client(config_: PartialConfig?)
 		{
 			type = "info",
 			value = "<b>Pow - Press ESC to close</b>",
-		},
-		{
-			type = "info",
-			value = "Hi leo!!",
 		},
 	}
 	state.ui = ui.init_ui(state)

@@ -25,7 +25,7 @@ export type Process = {
 	id: string,
 	name: string,
 	owner: Player,
-	bindings: {{key: Enum.KeyCode, command: Function}},
+	bindings: { { key: Enum.KeyCode, command: Function } },
 	global_scope: Scope,
 	results: { any },
 	types: { [string]: Type },
@@ -33,6 +33,7 @@ export type Process = {
 	on_log_updated: () -> (),
 	history: { string },
 	parent: Process?,
+	config: Config,
 }
 
 type Value = any
@@ -134,6 +135,14 @@ export type Config = {
 		},
 	},
 	user_permissions: { [string]: boolean },
+
+	extras: Script?,
+	data_store_key: string,
+	disable_data_store: boolean?,
+
+	-- derived
+	expanded_permission_types: { [string]: { [string]: boolean } },
+	replicated_extras: Script?,
 }
 
 export type PartialConfig = {
@@ -143,6 +152,9 @@ export type PartialConfig = {
 		},
 	}?,
 	user_permissions: { [string]: boolean }?,
+	extras: Script?,
+	data_store_key: string?,
+	disable_data_store: boolean?,
 }
 
 return {}

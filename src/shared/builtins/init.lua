@@ -8,17 +8,24 @@ type Type = types.Type
 type Expression = parser.Expression
 
 local builtin_permission_types = {
+	-- hard-coded role that automatically has all permissions,
+	-- present and future, and thus does not need explicit derived roles
+	root = {},
+
+	-- standard 5-tier roles found in most admin commands
 	owner = { "admin" },
-	admin = { "moderator", "control_flow", "automation"},
-	moderator = { "vip", "fun", "math", "debug" },
+	admin = { "moderator", "control_flow", "automation" },
+	moderator = { "vip", "fun", "math", "debug", "view_permissions" },
 	vip = { "normal" },
 	normal = {},
 
+	-- other partial permission types
 	fun = {},
 	debug = {},
 	math = {},
 	automation = {},
 	control_flow = {},
+	view_permissions = {},
 }
 
 return {
