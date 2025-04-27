@@ -1,0 +1,9 @@
+{
+	"name": "pow",
+	"tree": {
+		"$path": "src/server",
+		"shared": {
+			"$path": "src/shared"
+		}
+	}
+}

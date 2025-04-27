@@ -50,10 +50,18 @@ function infer(args: { string | Expression }, overloads: { Overload }, process: 
 			if type_obj == nil then
 				return { err = "cannot find type " .. param_type }
 			end
-			local result = if getmetatable(arg) == tag_expression_meta
-				then type_obj.coerce_expression(arg, process)
-				elseif arg == param_type or arg == "any" then { ok = arg }
-				else { err = `{arg} != {param_type}` }
+			local result
+			if getmetatable(arg) == tag_expression_meta then
+				if type_obj.coerce_expression then
+					result = type_obj.coerce_expression(arg, process)
+				else
+					result = process.types.any.coerce_expression(arg, process)
+				end
+			elseif arg == param_type or arg == "any" then
+				result = { ok = arg }
+			else
+				result = { err = `{arg} != {param_type}` }
+			end
 
 			if result.err == nil then
 				-- table.insert(coerced_args, result.ok)
@@ -110,9 +118,18 @@ function coerce_args(
 			if type_obj == nil then
 				return { err = "cannot find type " .. param_type }
 			end
-			local result = if getmetatable(arg) == tag_expression_meta
-				then type_obj.coerce_expression(arg, process)
-				else type_obj.coerce_value(arg, process)
+			local result
+			if getmetatable(arg) == tag_expression_meta then
+				if type_obj.coerce_expression then
+					result = type_obj.coerce_expression(arg, process)
+				else
+					result = process.types.any.coerce_expression(arg, process)
+				end
+			elseif type_obj.coerce_value then
+				result = type_obj.coerce_value(arg, process)
+			else
+				result = { ok = arg }
+			end
 			if result.err == nil then
 				table.insert(coerced_args, result.ok)
 			else

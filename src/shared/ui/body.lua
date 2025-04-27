@@ -44,6 +44,41 @@ function Log(props: { left: string, left_color: Color3, right: string })
 	})
 end
 
+function pretty(value: any, indent: number?): string
+	local indent_ = indent or 0
+	local indent_str = string.rep(" ", indent_)
+	if type(value) == "string" then
+		return value
+	elseif type(value) == "number" then
+		return tostring(value)
+	elseif type(value) == "boolean" then
+		return value and "true" or "false"
+	elseif type(value) == "table" then
+		if #value == 0 then
+			local str = "{\n"
+			for k, v in value do
+				str = str .. indent_str .. "\t" .. pretty(k, indent_ + 2) .. ": " .. pretty(v, indent_ + 2) .. ",\n"
+			end
+
+			return str .. indent_str .. "}"
+		else
+			local str = "{\n"
+			for k, v in value do
+				str = str .. indent_str .. "\t" .. pretty(v, indent_ + 2) .. ",\n"
+			end
+			return str .. indent_str .. "}"
+		end
+	elseif type(value) == "userdata" then
+		if typeof(value) == "Instance" then
+			return value.Name
+		else
+			return "<userdata>"
+		end
+	else
+		return "<" .. type(value) .. ">"
+	end
+end
+
 function Body(props: { process: Process })
 	local scrolling_frame = React.useRef(nil)
 	local list_layout = React.useRef(nil)
@@ -56,7 +91,7 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(243, 245, 202),
 					left = "USER",
-					right = `{log.value}`,
+					right = pretty(log.value),
 				})
 			)
 		elseif log.type == "output" then
@@ -65,7 +100,7 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(163, 163, 163),
 					left = `OUT[{log.index}]`,
-					right = `{log.value}`,
+					right = pretty(log.value),
 				})
 			)
 		elseif log.type == "error" then
@@ -74,7 +109,7 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(180, 0, 0),
 					left = "ERR",
-					right = `{log.value}`,
+					right = pretty(log.value),
 				})
 			)
 		elseif log.type == "info" then
@@ -83,7 +118,7 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(231, 231, 231),
 					left = "INFO",
-					right = `{log.value}`,
+					right = pretty(log.value),
 				})
 			)
 		end

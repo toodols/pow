@@ -50,6 +50,7 @@ function Autocomplete(props: {
 	local items = {}
 	if props.suggestions then
 		for sidx, suggestion in props.suggestions do
+			local text = suggestion.display_text or suggestion.text
 			table.insert(
 				items,
 				React.createElement("TextButton", {
@@ -65,12 +66,10 @@ function Autocomplete(props: {
 					[React.Event.MouseButton1Down] = function()
 						props.select(suggestion)
 					end,
-					Text = "  "
-						.. suggestion.text:sub(1, suggestion.match_start - 1)
-						.. '<font color="#50C0FF">'
-						.. suggestion.text:sub(suggestion.match_start, suggestion.match_end)
-						.. "</font>"
-						.. suggestion.text:sub(suggestion.match_end + 1),
+					Text = "  " .. text:sub(1, suggestion.match_start - 1) .. '<font color="#50C0FF">' .. text:sub(
+						suggestion.match_start,
+						suggestion.match_end
+					) .. "</font>" .. text:sub(suggestion.match_end + 1),
 				})
 			)
 		end
@@ -120,6 +119,7 @@ function Autocomplete(props: {
 						Size = UDim2.new(1, 0, 0, 25),
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						Text = props.description or "No description",
+						RichText = true,
 						BackgroundTransparency = 0.5,
 						BorderSizePixel = 0,
 						BackgroundColor3 = Color3.fromRGB(0, 0, 0),

@@ -79,6 +79,9 @@ function normalize_function(command, name)
 	command.type = "lua_function"
 	command.name = name
 	command.id = name
+	if command.permissions == nil then
+		error(`command {name} has no permissions`)
+	end
 	if command.overloads == nil then
 		command.overloads = {
 			{

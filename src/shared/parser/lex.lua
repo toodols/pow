@@ -50,12 +50,19 @@ local function tkNumber(text, start)
 		t = t .. t2
 	end
 
+	-- return {
+	-- 	type = "number",
+	-- 	raw = t,
+	-- 	start = start,
+	-- 	finish = start + #t - 1,
+	-- 	value = if neg then -(tonumber(t) :: number) else tonumber(t),
+	-- }
 	return {
-		type = "number",
+		type = "string",
 		raw = t,
-		start = start,
+		start = start - 1,
 		finish = start + #t - 1,
-		value = if neg then -(tonumber(t) :: number) else tonumber(t),
+		value = t,
 	}
 end
 

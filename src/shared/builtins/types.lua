@@ -17,11 +17,15 @@ function multiple(type: Type): Type
 				local fragments = expression.value:split ","
 				local coerced_values = {}
 				for _, frag in fragments do
-					local coerced = type.coerce_expression({ type = "string", value = frag }, process)
-					if coerced.err then
-						return { err = coerced.err }
+					if type.coerce_expression then
+						local coerced = type.coerce_expression({ type = "string", value = frag }, process)
+						if coerced.err then
+							return { err = coerced.err }
+						end
+						table.insert(coerced_values, coerced.ok)
+					else
+						table.insert(coerced_values, frag)
 					end
-					table.insert(coerced_values, coerced.ok)
 				end
 				return { ok = coerced_values }
 			elseif expression.type == "function" then
@@ -33,11 +37,15 @@ function multiple(type: Type): Type
 			if typeof(value) == "table" then
 				local coerced_values = {}
 				for _, val in value do
-					local coerced = type.coerce_value(val, process)
-					if coerced.err then
-						return { err = coerced.err }
+					if type.coerce_value then
+						local coerced = type.coerce_value(val, process)
+						if coerced.err then
+							return { err = coerced.err }
+						end
+						table.insert(coerced_values, coerced.ok)
+					else
+						table.insert(coerced_values, val)
 					end
-					table.insert(coerced_values, coerced.ok)
 				end
 				return { ok = coerced_values }
 			end
@@ -123,7 +131,7 @@ builtin_types.boolean = {
 		end
 		return { err = `cannot coerce {typeof(value)} to boolean` }
 	end,
-	autocomplete = { "true", "false" },
+	autocomplete_simple = { "true", "false" },
 }
 builtin_types.number = {
 	name = "number",
@@ -281,14 +289,15 @@ builtin_types.players = {
 			}
 			local matches = {}
 			for _, value in values do
-				if value:sub(1, #last_frag):lower() == last_frag:lower() then
-					table.insert(matches, {
-						replace_at = replace_at + last_comma,
-						text = value,
-						match_start = 1,
-						match_end = #last_frag,
-					})
+				if value:sub(1, #last_frag):lower() ~= last_frag:lower() then
+					continue
 				end
+				table.insert(matches, {
+					replace_at = replace_at + last_comma,
+					text = value,
+					match_start = 1,
+					match_end = #last_frag,
+				})
 			end
 			return matches
 		end
@@ -414,7 +423,7 @@ builtin_types.types = {
 	coerce_value = function(value): Result<any, string>
 		return { ok = value }
 	end,
-	autocomplete = { "any", "string", "number", "boolean", "function", "player", "players" },
+	autocomplete_simple = { "any", "string", "number", "boolean", "function", "player", "players" },
 }
 builtin_types.permission = {
 	name = "permission",

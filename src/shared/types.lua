@@ -45,6 +45,7 @@ export type Suggestion = {
 	match_end: number,
 	title: string?,
 	description: string?,
+	display_text: string?,
 }
 
 export type Type = {

@@ -111,7 +111,7 @@ function CommandBar(props: {
 		local x = 30 + TextService:GetTextSize(input.Text, input.TextSize, input.Font, input.AbsoluteSize).X
 		set_offset(x)
 		local succ, res, parser_state = parser.parse(input.Text)
-		
+
 		local fail_state = parser_state.failState
 		if not fail_state then
 			set_error {
@@ -196,7 +196,7 @@ function CommandBar(props: {
 				return
 			end
 			local ty_obj = props.process.types[arg.type]
-			if ty_obj.autocomplete == nil then
+			if ty_obj.autocomplete == nil and ty_obj.autocomplete_simple == nil then
 				set_autocomplete {
 					enabled = true,
 					title = if rest then `{arg.name} [+ {fail_state.argNum - #overload_args}]` else arg.name,
@@ -232,10 +232,16 @@ function CommandBar(props: {
 			end
 
 			local suggestions = {}
-			if typeof(ty_obj.autocomplete) == "function" then
+			if ty_obj.autocomplete ~= nil then
 				suggestions = ty_obj.autocomplete(text, replace_at, props.process)
-			else
-				for _, value in ty_obj.autocomplete do
+			elseif ty_obj.autocomplete_simple ~= nil then
+				local values = {}
+				if typeof(ty_obj.autocomplete_simple) == "function" then
+					values = ty_obj.autocomplete_simple(text, replace_at, props.process)
+				else
+					values = ty_obj.autocomplete_simple
+				end
+				for _, value in values do
 					if value:sub(1, #text):lower() == text:lower() then
 						table.insert(suggestions, {
 							replace_at = replace_at,

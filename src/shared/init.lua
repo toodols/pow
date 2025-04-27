@@ -1,5 +1,4 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
-local Players = game:GetService "Players"
 
 local ui = require(script.ui)
 local runtime = require(script.runtime)
@@ -41,8 +40,9 @@ end
 function init_client(config_: PartialConfig?)
 	local remote
 	if config_ == nil then
-		remote = ReplicatedStorage:FindFirstChild "Pow"
+		remote = ReplicatedStorage:WaitForChild "Pow"
 		if not remote or not remote:IsA "RemoteFunction" then
+			error "can't find pow remote"
 			return
 		end
 		config_ = remote:InvokeServer "get_config"
@@ -160,6 +160,8 @@ function init_client(config_: PartialConfig?)
 			state.submit_command(command)
 		end
 	end
+
+	print "Pow loaded"
 end
 
 return {

@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local StarterPlayer = game:GetService "StarterPlayer"
 local DataStoreService = game:GetService "DataStoreService"
+local Players = game:GetService "Players"
 
 local shared = script.shared
 local util = require(script.shared.util)
@@ -11,30 +12,37 @@ type PartialConfig = types.PartialConfig
 type Config = types.Config
 type Process = types.Process
 
-function load_permissions(config: Config)
+function load_permissions(config: Config, done: () -> nil)
 	if config.disable_data_store then
 		return
 	end
-	local data_store = DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
+	task.spawn(function()
+		local data_store = DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
 
-	local permissions = data_store:GetAsync "permissions"
-	if permissions then
-		for permission, ranks in permissions do
-			if permission == "root" or permission == "normal" then
-				continue
-			end
-			for userid, rank in ranks do
-				local cur_permission, cur_rank = util.get_user_permission_and_rank(config.permissions, userid)
-				if cur_permission == "normal" or cur_permission == permission and cur_rank < rank then
-					config.permissions[permission] = config.permissions[permission] or {}
-					config.permissions[permission][userid] = rank
+		local permissions = data_store:GetAsync "permissions"
+		if permissions then
+			for permission, ranks in permissions do
+				if permission == "root" or permission == "normal" then
+					continue
+				end
+				for userid, rank in ranks do
+					local cur_permission, cur_rank = util.get_user_permission_and_rank(config.permissions, userid)
+					if cur_permission == "normal" or cur_permission == permission and cur_rank < rank then
+						config.permissions[permission] = config.permissions[permission] or {}
+						config.permissions[permission][userid] = rank
+					end
 				end
 			end
 		end
-	end
+
+		done()
+	end)
 end
 
 function init(config_: PartialConfig)
+	local pow_client = script.pow_client
+	pow_client.Parent = StarterPlayer.StarterPlayerScripts
+
 	local remote = Instance.new "RemoteFunction"
 	remote.Parent = ReplicatedStorage
 	remote.Name = "Pow"
@@ -63,7 +71,13 @@ function init(config_: PartialConfig)
 		config.replicated_extras.Name = "replicated_extras"
 	end
 
-	load_permissions(config)
+	load_permissions(config, function()
+		for _, player in Players:GetPlayers() do
+			local player_permission = util.get_user_permission_and_rank(config.permissions, player.UserId)
+			print(player_permission, config)
+			remote:InvokeClient(player, "get_config", util.serialize_config(config, player_permission))
+		end
+	end)
 
 	local commands = {}
 	for name, command in builtins.builtin_commands do
@@ -114,7 +128,7 @@ function init(config_: PartialConfig)
 			if not command then
 				return { err = `server: command {data.function_id} not found` }
 			end
-			if command.permissions and not util.has_permission(command.permissions, user_expanded_permission) then
+			if not util.has_permission(command.permissions, user_expanded_permission) then
 				return { err = `server: insufficient permission` }
 			end
 
@@ -148,9 +162,6 @@ function init(config_: PartialConfig)
 		end
 		return nil
 	end
-
-	local pow_client = script.pow_client
-	pow_client.Parent = StarterPlayer.StarterPlayerScripts
 end
 
 return { init = init }

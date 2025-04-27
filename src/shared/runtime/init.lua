@@ -85,6 +85,8 @@ function run_function(process: Process, fun: Function, args: { any }?): Result<a
 			local result =
 				pow_remote:InvokeServer("server_run", { process_id = process.id, function_id = fun.id, args = args })
 			return result
+		else
+			return { err = "no run or server_run" }
 		end
 	end
 	error "unreachable"
@@ -149,8 +151,6 @@ function run_lua_function(
 		run_function = function(self, value: Function, args_: { any }?)
 			return run_function(process, value, args_)
 		end,
-
-
 		log = function(self, log: Log)
 			table.insert(process.logs, log)
 			process.on_log_updated()
@@ -231,7 +231,7 @@ function run_root_commands(process: Process, commands: RootCommands)
 		table.insert(process.results, result.ok)
 		table.insert(process.logs, {
 			type = "output",
-			value = tostring(result.ok),
+			value = result.ok,
 			index = #process.results,
 			at = tick(),
 		})

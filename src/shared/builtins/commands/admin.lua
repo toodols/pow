@@ -11,7 +11,7 @@ local pow_remote = ReplicatedStorage:FindFirstChild "Pow"
 
 local commands = {}
 commands.view_permissions = {
-	description = "Display all permissions",
+	description = "Display all permissions.",
 	permissions = { "view_permissions" },
 	run = function(context)
 		print(context.config)
@@ -34,7 +34,7 @@ commands.view_permissions = {
 }
 
 commands.set_permission = {
-	description = "Sets a player's permission",
+	description = "Sets a player's permission.\n<b>Setting your own permission will permanently change it unless it is hard coded</b>",
 	permissions = { "admin" },
 	server_run = function(context)
 		local function save_user_permission(config: Config, userid: number)
@@ -79,7 +79,10 @@ commands.set_permission = {
 		end
 		util.set_permission(context.config.permissions, target.UserId, target_permission, rank)
 		save_user_permission(context.config, target.UserId)
-		pow_remote:InvokeClient(target, "config_updated", util.serialize_config(context.config, target_permission))
+		for _, player in Players:GetPlayers() do
+			local player_permission = util.get_user_permission_and_rank(context.config.permissions, player.UserId)
+			pow_remote:InvokeClient(player, "get_config", util.serialize_config(context.config, player_permission))
+		end
 	end,
 	overloads = {
 		{
@@ -674,8 +677,25 @@ commands.blink = {
 	alias = { "b" },
 	run = function(context)
 		local mouse = Players.LocalPlayer:GetMouse()
-		local pos = mouse.Hit.p
+		local pos = mouse.Hit.Position
 		Players.LocalPlayer.Character:PivotTo(CFrame.new(pos + Vector3.new(0, 2, 0)))
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
+commands.through = {
+	description = "Teleports to position after the mouse ",
+	permissions = { "moderator" },
+	alias = { "t" },
+	run = function(context)
+		local mouse = Players.LocalPlayer:GetMouse()
+		local pos = mouse.Hit * CFrame.new(0, 0, -4)
+		Players.LocalPlayer.Character:PivotTo(CFrame.new(pos.Position))
 	end,
 	overloads = {
 		{
