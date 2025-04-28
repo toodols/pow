@@ -16,7 +16,6 @@ commands.print = {
 			at = tick(),
 			value = msg,
 		}
-		print(unpack(context.args))
 	end,
 	overloads = {
 		{ returns = "nil", args = { {
@@ -39,6 +38,22 @@ commands.echo = {
 			name = "Value",
 			type = "any",
 		} } },
+	},
+}
+
+commands.test_recursive = {
+	description = "Returns a recursive value",
+	permissions = { "debug" },
+	run = function(context)
+		local recursive = {}
+		recursive.foo = recursive
+		return recursive
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {},
+		},
 	},
 }
 

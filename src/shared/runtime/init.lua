@@ -223,15 +223,35 @@ function run_commands(process: Process, commands: Commands, state: State): Resul
 	return result
 end
 
+function deep_copy(obj: any, visited: { [string]: any }, depth: number): any
+	if depth > 10 then
+		return "<error: max depth reached>"
+	end
+	if type(obj) == "table" then
+		if visited[tostring(obj)] then
+			return visited[tostring(obj)]
+		end
+		local copy = {}
+		visited[tostring(obj)] = copy
+		for key, value in obj do
+			copy[key] = deep_copy(value, visited, depth + 1)
+		end
+		return copy
+	else
+		return obj
+	end
+end
+
 function run_root_commands(process: Process, commands: RootCommands)
 	process.on_log_updated()
 
 	local result = run_commands(process, commands, { args = {} })
 	if result.ok ~= nil then
 		table.insert(process.results, result.ok)
+
 		table.insert(process.logs, {
 			type = "output",
-			value = result.ok,
+			value = deep_copy(result.ok, {}, 0),
 			index = #process.results,
 			at = tick(),
 		})

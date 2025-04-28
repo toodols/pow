@@ -14,16 +14,7 @@ commands.view_permissions = {
 	description = "Display all permissions.",
 	permissions = { "view_permissions" },
 	run = function(context)
-		print(context.config)
-		local permissions = context.config.permissions
-		local text = ""
-		for permission, entries in permissions do
-			text = text .. permission .. "\n"
-			for userid, rank in entries do
-				text ..= `\t"{userid}" = {rank}\n`
-			end
-		end
-		return text
+		return context.config.permissions
 	end,
 	overloads = {
 		{

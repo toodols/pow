@@ -68,8 +68,10 @@ end
 
 function has_permission(required: { string }, has: { [string]: boolean }): boolean
 	for _, permission in required do
-		if not has[permission] then
+		if has[permission] == false then
 			return false
+		elseif has[permission] == nil then
+			error "cant find this permission"
 		end
 	end
 	return true

@@ -213,6 +213,44 @@ commands.length = {
 	},
 }
 
+commands.push = {
+	description = "Pushes a value to the end of a table",
+	permissions = { "math" },
+	run = function(context)
+		table.insert(context.args[1], context.args[2])
+		return #context.args[1]
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Table",
+				type = "table",
+			}, {
+				name = "Value",
+				type = "any",
+			} },
+		},
+	},
+}
+
+commands.pop = {
+	description = "Pops a value from the end of a table",
+	permissions = { "math" },
+	run = function(context)
+		return table.remove(context.args[1])
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = { {
+				name = "Table",
+				type = "table",
+			} },
+		},
+	},
+}
+
 commands.number = {
 	description = "Creates a number",
 	permissions = { "math" },

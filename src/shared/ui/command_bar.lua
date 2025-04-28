@@ -53,6 +53,7 @@ local function infer_command(command: Command, process: Process, arg_num: number
 	local infer_res = runtime.infer(args, fun.overloads, process)
 	return infer_res
 end
+
 local function overloads(func, selected)
 	local overload_text = ""
 	for i, overload in func.overloads do
