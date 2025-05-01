@@ -37,30 +37,15 @@ function new_process()
 		logs = {},
 		on_log_updated = function() end,
 		run_command_ast = function(self, commands: RootCommands)
-			table.insert(self.history, commands.raw)
-			table.insert(self.logs, {
-				type = "input",
-				value = commands,
-				at = tick(),
-			})
-			run_root_commands(self, commands)
+			local result = run_commands(self, commands, { args = {} })
+			return result
 		end,
 		run_command = function(self, command_text: string)
-			table.insert(self.history, command_text)
 			local parse_success, result, parse_state = parser.parse(command_text)
-			table.insert(self.logs, {
-				type = "input",
-				value = command_text,
-				at = tick(),
-			})
 			if not parse_success then
-				table.insert(self.logs, {
-					type = "error",
-					value = result,
-					at = tick(),
-				})
+				return { err = result }
 			end
-			run_root_commands(self, result)
+			return run_commands(self, result, { args = {} })
 		end,
 	}
 	return process
@@ -103,7 +88,7 @@ function find_function(scope: Scope, path: string): Result<Function, string>
 		elseif scope.parent then
 			scope = scope.parent
 		else
-			return { err = "not found" }
+			return { err = path .. " not found" }
 		end
 	end
 end
@@ -242,10 +227,25 @@ function deep_copy(obj: any, visited: { [string]: any }, depth: number): any
 	end
 end
 
-function run_root_commands(process: Process, commands: RootCommands)
+function run_user_command(process: Process, text: string)
+	table.insert(process.history, text)
+	table.insert(process.logs, {
+		type = "input",
+		value = text,
+		at = tick(),
+	})
 	process.on_log_updated()
+	local success, parse_result, parse_state = parser.parse(text)
+	if not success then
+		table.insert(process.logs, {
+			type = "error",
+			value = parse_result,
+			at = tick(),
+		})
+		return
+	end
 
-	local result = run_commands(process, commands, { args = {} })
+	local result = run_commands(process, parse_result, { args = {} })
 	if result.ok ~= nil then
 		table.insert(process.results, result.ok)
 
@@ -267,7 +267,7 @@ end
 return {
 	new_scope = new_scope,
 	new_process = new_process,
-	run_root_commands = run_root_commands,
+	run_user_command = run_user_command,
 	find_function = find_function,
 	coerce_args = typing.coerce_args,
 	infer = typing.infer,

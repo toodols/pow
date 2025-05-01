@@ -113,14 +113,15 @@ function CommandBar(props: {
 		set_offset(x)
 		local succ, res, parser_state = parser.parse(input.Text)
 
-		local fail_state = parser_state.failState
-		if not fail_state then
+		if parser_state == nil or parser_state.failState == nil then
 			set_error {
 				enabled = true,
 				value = res,
 			}
 			return
 		end
+
+		local fail_state = parser_state.failState
 		if fail_state.type == "commandPath" then
 			local suggestions = {}
 			if #fail_state.path == 0 then
@@ -289,6 +290,7 @@ function CommandBar(props: {
 				input:CaptureFocus()
 				task.wait()
 				props.submit_command(command_text)
+				history_index.current = 0
 			elseif input_obj and input_obj.KeyCode == Enum.KeyCode.Escape then
 				if input.Text == "" then
 					props.set_is_open(false)

@@ -1,5 +1,6 @@
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 
+local parser = require(script.parser)
 local ui = require(script.ui)
 local runtime = require(script.runtime)
 local types = require(script.types)
@@ -46,7 +47,6 @@ function init_client(config_: PartialConfig?)
 			return
 		end
 		config_ = remote:InvokeServer "get_config"
-		print("get_config", config_)
 	end
 	if config_ == nil then
 		config_ = {}
@@ -142,7 +142,7 @@ function init_client(config_: PartialConfig?)
 	end
 	state.submit_command = function(command_text: string)
 		local current_process = state.tabs[state.current_tab]
-		current_process:run_command(command_text)
+		runtime.run_user_command(current_process, command_text)
 		state.ui.update(state)
 	end
 
@@ -160,8 +160,6 @@ function init_client(config_: PartialConfig?)
 			state.submit_command(command)
 		end
 	end
-
-	print "Pow loaded"
 end
 
 return {

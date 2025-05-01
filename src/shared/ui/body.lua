@@ -5,13 +5,13 @@ local React = require(ReplicatedStorage.Packages.react)
 local types = require(script.Parent.Parent.types)
 type Process = types.Process
 
-function Log(props: { left: string, left_color: Color3, right: string })
-	local should_use_expand = TextService:GetTextSize(
-		props.right,
-		16,
-		Enum.Font.SourceSans,
-		Vector2.new(math.huge, math.huge)
-	).X > 200
+function Log(props: { left: string, left_color: Color3, right: string, RichText: boolean? })
+	local params = Instance.new "GetTextBoundsParams"
+	params.Text = props.right
+	params.Size = 16
+	params.Font = Font.fromName("SourceSansPro", Enum.FontWeight.Regular)
+
+	local should_use_expand = TextService:GetTextBoundsAsync(params).Y > 300
 	local is_expanded, set_is_expanded = React.useState(false)
 
 	return React.createElement("Frame", {
@@ -57,7 +57,7 @@ function Log(props: { left: string, left_color: Color3, right: string })
 			Size = UDim2.new(0, 0, 0, 25),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextSize = 16,
-			RichText = true,
+			RichText = props.RichText or true,
 			Visible = not should_use_expand or is_expanded,
 			BackgroundTransparency = 1,
 			FontFace = Font.fromName "SourceSansPro",
@@ -129,7 +129,8 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(243, 245, 202),
 					left = "USER",
-					right = log.value,
+					right = tostring(log.value),
+					RichText = false,
 				})
 			)
 		elseif log.type == "output" then
@@ -147,7 +148,7 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(180, 0, 0),
 					left = "ERR",
-					right = log.value,
+					right = tostring(log.value),
 				})
 			)
 		elseif log.type == "info" then
@@ -156,7 +157,7 @@ function Body(props: { process: Process })
 				React.createElement(Log, {
 					left_color = Color3.fromRGB(231, 231, 231),
 					left = "INFO",
-					right = log.value,
+					right = tostring(log.value),
 				})
 			)
 		end

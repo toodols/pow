@@ -176,6 +176,7 @@ commands["table"] = {
 				{
 					name = "Arguments",
 					type = "any",
+					rest = true,
 				},
 			},
 		},
@@ -223,13 +224,16 @@ commands.push = {
 	overloads = {
 		{
 			returns = "nil",
-			args = { {
-				name = "Table",
-				type = "table",
-			}, {
-				name = "Value",
-				type = "any",
-			} },
+			args = {
+				{
+					name = "Table",
+					type = "table",
+				},
+				{
+					name = "Value",
+					type = "any",
+				},
+			},
 		},
 	},
 }

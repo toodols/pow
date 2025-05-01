@@ -60,6 +60,7 @@ function init_ui(pow_client)
 	root_inst.ResetOnSpawn = false
 	root_inst.IgnoreGuiInset = true
 	root_inst.Name = "PowGui"
+	root_inst.DisplayOrder = 7
 	local root = ReactRoblox.createRoot(root_inst)
 	root:render(React.createElement(Main, { nonce = nonce, pow_client = pow_client }))
 	return {
