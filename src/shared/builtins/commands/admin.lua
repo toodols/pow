@@ -14,7 +14,7 @@ commands.view_permissions = {
 	description = "Display all permissions.",
 	permissions = { "view_permissions" },
 	run = function(context)
-		return context.config.permissions
+		return context.process.config.permissions
 	end,
 	overloads = {
 		{
@@ -48,31 +48,37 @@ commands.set_permission = {
 
 		local executor = context.executor
 		local target: Player = context.args[1]
-		if not util.compare_ranks(context.config.permissions, executor, target) then
+		if not util.compare_ranks(context.process.config.permissions, executor, target) then
 			error "You can't set this player's permission"
 		end
 
 		local target_permission = context.args[2]
-		local executor_permission = util.get_user_permission_and_rank(context.config.permissions, executor.UserId)
+		local executor_permission =
+			util.get_user_permission_and_rank(context.process.config.permissions, executor.UserId)
 
 		if
 			not util.has_permission(
 				{ target_permission },
-				context.config.expanded_permission_types[executor_permission]
+				context.process.config.expanded_permission_types[executor_permission]
 			)
 		then
 			error "You can't set this permission"
 		end
 
 		local rank = context.args[3]
-		if not util.compare_ranks(context.config.permissions, executor, rank) then
+		if not util.compare_ranks(context.process.config.permissions, executor, rank) then
 			error "You can't set this rank"
 		end
-		util.set_permission(context.config.permissions, target.UserId, target_permission, rank)
-		save_user_permission(context.config, target.UserId)
+		util.set_permission(context.process.config.permissions, target.UserId, target_permission, rank)
+		save_user_permission(context.process.config, target.UserId)
 		for _, player in Players:GetPlayers() do
-			local player_permission = util.get_user_permission_and_rank(context.config.permissions, player.UserId)
-			pow_remote:InvokeClient(player, "get_config", util.serialize_config(context.config, player_permission))
+			local player_permission =
+				util.get_user_permission_and_rank(context.process.config.permissions, player.UserId)
+			pow_remote:InvokeClient(
+				player,
+				"get_config",
+				util.serialize_config(context.process.config, player_permission)
+			)
 		end
 	end,
 	overloads = {
@@ -96,13 +102,43 @@ commands.set_permission = {
 	},
 }
 
+commands.spy = {
+	description = "Spys on a player's processes",
+	permissions = { "admin" },
+	server_run = function(context)
+		if not util.compare_ranks(context.process.config.permissions, context.executor, context.args[1]) then
+			error "You can't spy on this player"
+		end
+		return context.process.server.user_processes[context.args[1]]
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Target",
+					type = "player",
+				},
+			},
+		},
+	},
+}
+
 commands.sudo = {
 	description = "Runs a command as another player",
 	permissions = { "admin" },
 	server_run = function(context)
-		pow_remote:InvokeClient(context.args[1], "run_command", {
+		if not util.compare_ranks(context.process.config.permissions, context.executor, context.args[1]) then
+			error "You can't use sudo on this player"
+		end
+		local result = pow_remote:InvokeClient(context.args[1], "run_command", {
 			["function"] = context.args[2],
 		})
+		if result.ok then
+			return result.ok
+		else
+			return "Error: " .. result.err
+		end
 	end,
 	overloads = {
 		{
@@ -143,6 +179,10 @@ commands.kill = {
 		},
 	},
 }
+
+-- commands.leaderstat = {
+-- 	description = ""
+-- }
 
 commands.gear = {
 	description = "Gives players gear",
@@ -191,18 +231,14 @@ commands.to = {
 	description = "Teleports you to a player",
 	permissions = { "moderator" },
 	run = function(context)
-		local player = context.args[1] or context.executor
-		Players.LocalPlayer.Character:PivotTo(player.Character:GetPivot())
+		local player = context.args[1]
+		context.executor.Character:PivotTo(player.Character:GetPivot())
 	end,
 	overloads = {
 		{ returns = "nil", args = { {
 			name = "Target",
 			type = "player",
 		} } },
-		{
-			returns = "nil",
-			args = {},
-		},
 	},
 }
 
@@ -210,11 +246,13 @@ commands.unlock = {
 	description = "Unlocks players",
 	permissions = { "moderator" },
 	server_run = function(context)
-		local player = context.args[1] or { context.executor }
-		local character = player.Character
-		for _, part in character:GetDescendants() do
-			if part:IsA "BasePart" then
-				part.Locked = false
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			local character = player.Character
+			for _, part in character:GetDescendants() do
+				if part:IsA "BasePart" then
+					part.Locked = false
+				end
 			end
 		end
 	end,
@@ -283,13 +321,29 @@ commands.tool = {
 		tool.Name = name or "Tool"
 		tool.RequiresHandle = false
 		tool.Parent = context.executor.Backpack
+		if context.args[2] then
+			local handle = Instance.new "Part"
+			handle.Name = "Handle"
+			handle.Parent = tool
+			tool.CanBeDropped = true
+		end
 		return tool
 	end,
 	overloads = {
-		{ returns = "instance", args = { {
-			name = "Name",
-			type = "string",
-		} } },
+		{
+			returns = "instance",
+			args = {
+				{
+					name = "Name",
+					type = "string",
+				},
+				{
+					name = "Droppable",
+					type = "boolean",
+					optional = true,
+				},
+			},
+		},
 
 		{
 			returns = "instance",
@@ -507,7 +561,7 @@ commands["kick"] = {
 	server_run = function(context)
 		local players = context.args[1]
 		for _, player in players do
-			if util.compare_ranks(context.config.permissions, context.executor, player) then
+			if util.compare_ranks(context.process.config.permissions, context.executor, player) then
 				player:Kick(context.args[2])
 			else
 				error(`Cannot kick {player.Name}`)
@@ -666,7 +720,7 @@ commands.blink = {
 	description = "Teleports to position under the mouse",
 	permissions = { "moderator" },
 	alias = { "b" },
-	run = function(context)
+	client_run = function(context)
 		local mouse = Players.LocalPlayer:GetMouse()
 		local pos = mouse.Hit.Position
 		Players.LocalPlayer.Character:PivotTo(CFrame.new(pos + Vector3.new(0, 2, 0)))
@@ -683,7 +737,7 @@ commands.through = {
 	description = "Teleports to position after the mouse ",
 	permissions = { "moderator" },
 	alias = { "t" },
-	run = function(context)
+	client_run = function(context)
 		local mouse = Players.LocalPlayer:GetMouse()
 		local pos = mouse.Hit * CFrame.new(0, 0, -4)
 		Players.LocalPlayer.Character:PivotTo(CFrame.new(pos.Position))

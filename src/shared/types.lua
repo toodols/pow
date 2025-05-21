@@ -25,7 +25,7 @@ export type Process = {
 	id: string,
 	name: string,
 	owner: Player,
-	bindings: { { key: Enum.KeyCode, command: Function } },
+	bindings: { [Enum.KeyCode]: Function },
 	global_scope: Scope,
 	results: { any },
 	types: { [string]: Type },
@@ -33,7 +33,9 @@ export type Process = {
 	on_log_updated: () -> (),
 	history: { string },
 	parent: Process?,
+	server: any?,
 	config: Config,
+	destroy: () -> (),
 }
 
 type Value = any
@@ -76,9 +78,13 @@ export type Function = {
 } | {
 	type: "lua_function",
 	id: string,
+	-- May be run in any context, at the convenience of the current "side"
 	run: ((Context) -> any)?,
-	server_run: (({ args: { any } }) -> any)?,
-	name: string?,
+	-- Must be run in server, client will defer to server
+	server_run: ((Context) -> any)?,
+	-- Must be run in client, server will defer to client
+	client_run: ((Context) -> any)?,
+	name: string,
 	description: string,
 	overloads: { Overload }?,
 }
@@ -98,23 +104,18 @@ export type Scope = {
 
 export type Context = {
 	process: Process,
+	executor: Player?,
+	data: { any },
 	args: { any },
-	run_function: (self: Context, fun: Function, args: { any }?) -> any,
-	-- executor: Player,
+	defer: () -> (),
 }
 
 export type State = {
 	args: { any },
 }
 
-export type Tab = {
-	id: string,
-	name: string,
-	process: Process,
-}
-
 export type PowClient = {
-	tabs: { [string]: { name: string, process: Process } },
+	tabs: { [string]: Process },
 	current_tab: string,
 	new_tab: () -> (),
 	remove_tab: (id: string) -> (),
@@ -137,13 +138,18 @@ export type Config = {
 	},
 	user_permissions: { [string]: boolean },
 
-	extras: Script?,
+	extras_shared: { ModuleScript }?,
+	extras_client: { ModuleScript }?,
+	extras_server: { ModuleScript }?,
+
 	data_store_key: string,
 	disable_data_store: boolean?,
 
 	-- derived
+	auto_run: { string },
 	expanded_permission_types: { [string]: { [string]: boolean } },
-	replicated_extras: Script?,
+	replicated_extras_shared: { ModuleScript }?,
+	function_prototypes: FunctionNamespace,
 }
 
 export type PartialConfig = {
@@ -153,7 +159,9 @@ export type PartialConfig = {
 		},
 	}?,
 	user_permissions: { [string]: boolean }?,
-	extras: Script?,
+	extras_shared: { ModuleScript }?,
+	extras_client: { ModuleScript }?,
+	extras_server: { ModuleScript }?,
 	data_store_key: string?,
 	disable_data_store: boolean?,
 }

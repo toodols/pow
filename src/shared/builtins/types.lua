@@ -453,6 +453,40 @@ builtin_types.permission = {
 		return matches
 	end,
 }
+builtin_types.keycode = {
+	name = "keycode",
+	coerce_expression = function(expression: Expression): Result<any, string>
+		if expression.type == "function" then
+			return { err = "not a string" }
+		elseif expression.type == "string" then
+			local value: Enum.KeyCode = (Enum.KeyCode :: any):FromName(expression.value)
+			if value then
+				return { ok = value }
+			else
+				return { err = `Cannot find keycode {expression.value}` }
+			end
+		end
+		error "unreachable"
+	end,
+	coerce_value = function(value): Result<any, string>
+		return { ok = value }
+	end,
+	autocomplete = function(text, replace_at, process)
+		local matches = {}
+		for _, keycode in Enum.KeyCode:GetEnumItems() do
+			local k = keycode.Name
+			if k:sub(1, #text):lower() == text:lower() then
+				table.insert(matches, {
+					replace_at = replace_at,
+					text = k,
+					match_start = 1,
+					match_end = #text,
+				})
+			end
+		end
+		return matches
+	end,
+}
 
 return {
 	builtin_types = builtin_types,

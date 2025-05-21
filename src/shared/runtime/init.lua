@@ -3,8 +3,8 @@ local Players = game:GetService "Players"
 local parser = require(script.Parent.parser)
 local types = require(script.Parent.types)
 local typing = require(script.typing)
-local util = require(script.Parent.util)
-local local_player = Players.LocalPlayer
+local UserInputService = game:GetService "UserInputService"
+local RunService = game:GetService "RunService"
 
 type Commands = parser.Commands
 type Command = parser.Command
@@ -19,6 +19,8 @@ type Context = types.Context
 type Type = types.Type
 type State = types.State
 type Result<T, E> = types.Result<T, E>
+
+local runtime
 
 local id = 0
 function new_process()
@@ -47,7 +49,19 @@ function new_process()
 			end
 			return run_commands(self, result, { args = {} })
 		end,
+		destroy = function() end,
 	}
+	local conn = UserInputService.InputBegan:Connect(function(input_obj, game_processed)
+		if game_processed then
+			return
+		end
+		if process.bindings[input_obj.KeyCode] then
+			run_function(process, process.bindings[input_obj.KeyCode], {})
+		end
+	end)
+	process.destroy = function()
+		conn:Disconnect()
+	end
 	return process
 end
 
@@ -59,19 +73,40 @@ function new_scope(parent: Scope?): Scope
 	}
 end
 
-function run_function(process: Process, fun: Function, args: { any }?): Result<any, string>
+function run_function(process: Process, fun: Function, args: { any }?, data: any?): Result<any, string>
+	data = data or {}
+	args = args or {}
+	assert(args ~= nil and data ~= nil, "args cannot be nil")
 	if fun.type == "custom_function" then
 		return run_commands(process, fun.commands, { args = args })
 	elseif fun.type == "lua_function" then
 		if fun.run then
-			return run_lua_function(process, fun.id, fun.run, args or {})
-		elseif fun.server_run then
-			local pow_remote = ReplicatedStorage.Pow
-			local result =
-				pow_remote:InvokeServer("server_run", { process_id = process.id, function_id = fun.id, args = args })
-			return result
-		else
-			return { err = "no run or server_run" }
+			return run_lua_function(process, fun.id, fun.run, args, data)
+		elseif RunService:IsClient() then
+			if fun.client_run then
+				return run_lua_function(process, fun.id, fun.client_run, args, data)
+			elseif fun.server_run ~= nil then
+				local pow_remote = ReplicatedStorage.Pow
+				local result = pow_remote:InvokeServer(
+					"server_run",
+					{ process_id = process.id, function_id = fun.id, args = args, data = data }
+				)
+				return result
+			else
+				return { err = "no run, client_run, or server_run found for function" }
+			end
+		elseif RunService:IsServer() then
+			if fun.server_run then
+				return run_lua_function(process, fun.id, fun.server_run, args, data)
+			else
+				local pow_remote = ReplicatedStorage.Pow
+				return pow_remote:InvokeClient(process.owner, "client_run", {
+					process_id = process.id,
+					function_id = fun.id,
+					args = args,
+					data = data,
+				})
+			end
 		end
 	end
 	error "unreachable"
@@ -116,32 +151,47 @@ function run_lua_function(
 	process: Process,
 	fn_id: string,
 	fn: (context: Context) -> any,
-	args: { any }
+	args: { any },
+	data: any
 ): Result<any, string>
 	local context: Context = {
 		process = process,
 		args = args,
-		executor = local_player,
-		config = process.config,
-		-- defers a command to run on the server now
-		defer = function(self, client_run_data: { any })
-			local pow_remote = ReplicatedStorage.Pow
-			pow_remote:InvokeServer("server_run", {
-				process_id = process.id,
-				function_id = fn_id,
-				client_data = client_run_data,
-				args = args,
-			})
-		end,
-		run_function = function(self, value: Function, args_: { any }?)
-			return run_function(process, value, args_)
-		end,
+		executor = process.owner,
+		data = data,
+		runtime = runtime,
 		log = function(self, log: Log)
-			table.insert(process.logs, log)
-			process.on_log_updated()
+			if RunService:IsClient() then
+				table.insert(self.process.logs, log)
+				self.process.on_log_updated()
+			elseif RunService:IsServer() then
+				local pow_remote = ReplicatedStorage.Pow
+				pow_remote:InvokeClient(self.executor, "log", {
+					process_id = self.process.id,
+					log = log,
+				})
+			end
 		end,
-		clear_logs = function(self)
-			process.logs = {}
+		-- defers a command to run on the server now
+		defer = function(self)
+			local pow_remote = ReplicatedStorage.Pow
+			if RunService:IsClient() then
+				return pow_remote:InvokeServer("server_run", {
+					process_id = process.id,
+					function_id = fn_id,
+					data = self.data,
+					args = args,
+				})
+			elseif RunService:IsServer() then
+				return pow_remote:InvokeClient(self.executor, "client_run", {
+					process_id = process.id,
+					function_id = fn_id,
+					data = self.data,
+					args = args,
+				})
+			else
+				error "unreachable"
+			end
 		end,
 	}
 	local success, err_or_res = pcall(fn, context)
@@ -264,12 +314,15 @@ function run_user_command(process: Process, text: string)
 	end
 end
 
-return {
+runtime = {
 	new_scope = new_scope,
 	new_process = new_process,
 	run_user_command = run_user_command,
+	run_function = run_function,
 	find_function = find_function,
 	coerce_args = typing.coerce_args,
 	infer = typing.infer,
 	tag_expression = typing.tag_expression,
 }
+
+return runtime

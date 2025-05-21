@@ -5,7 +5,7 @@ commands["repeat"] = {
 	permissions = { "control_flow" },
 	run = function(context)
 		for i = 1, context.args[1] do
-			context:run_function(context.args[2])
+			context.runtime.run_function(context.process, context.args[2])
 		end
 	end,
 	overloads = {
@@ -25,14 +25,51 @@ commands["repeat"] = {
 	},
 }
 
+commands.client = {
+	description = "Forces a function to run in client context",
+	permissions = { "control_flow" },
+	client_run = function(context)
+		return context.runtime.run_function(context.process, context.args[1])
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Function",
+					type = "function",
+				},
+			},
+		},
+	},
+}
+commands.server = {
+	description = "Forces a function to run in server context",
+	permissions = { "control_flow" },
+	server_run = function(context)
+		return context.runtime.run_function(context.process, context.args[1])
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Function",
+					type = "function",
+				},
+			},
+		},
+	},
+}
+
 commands["while"] = {
 	description = "Loops a function while a condition is true",
 	permissions = { "control_flow" },
 	run = function(context)
 		local waits = false
-		while context:run_function(context.args[1]) do
+		while context.runtime.run_function(context.process, context.args[1]) do
 			local t = tick()
-			context:run_function(context.args[2])
+			context.runtime.run_function(context.process, context.args[2])
 			if tick() - t < 1 then
 				if not waits then
 					context:log {
@@ -67,9 +104,9 @@ commands["if"] = {
 	permissions = { "control_flow" },
 	run = function(context)
 		if context.args[1] then
-			return context:run_function(context.args[2])
+			return context.runtime.run_function(context.process, context.args[2])
 		elseif context.args[3] then
-			return context:run_function(context.args[3])
+			return context.runtime.run_function(context.process, context.args[3])
 		end
 		return nil
 	end,
@@ -114,7 +151,7 @@ commands.loop = {
 		local waits = false
 		while true do
 			local t = tick()
-			context:run_function(context.args[1])
+			context.runtime.run_function(context.process, context.args[1])
 			if tick() - t < 1 then
 				if not waits then
 					context:log {

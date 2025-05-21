@@ -109,9 +109,10 @@ function CommandBar(props: {
 		if input == nil or not input:IsFocused() then
 			return
 		end
-		local x = 30 + TextService:GetTextSize(input.Text, input.TextSize, input.Font, input.AbsoluteSize).X
+		local text = input.Text:sub(1, input.CursorPosition - 1)
+		local x = 30 + TextService:GetTextSize(text, input.TextSize, input.Font, input.AbsoluteSize).X
 		set_offset(x)
-		local succ, res, parser_state = parser.parse(input.Text)
+		local succ, res, parser_state = parser.parse(text)
 
 		if parser_state == nil or parser_state.failState == nil then
 			set_error {
@@ -385,6 +386,9 @@ function CommandBar(props: {
 			BackgroundTransparency = 1,
 			TextColor3 = if err.enabled then Color3.fromRGB(255, 0, 0) else Color3.fromRGB(255, 255, 255),
 			ref = input_ref,
+			[React.Change.CursorPosition] = function()
+				update_autocomplete()
+			end,
 			[React.Change.Text] = function()
 				update_autocomplete()
 			end,

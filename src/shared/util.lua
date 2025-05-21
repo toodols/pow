@@ -71,6 +71,7 @@ function has_permission(required: { string }, has: { [string]: boolean }): boole
 		if has[permission] == false then
 			return false
 		elseif has[permission] == nil then
+			return false
 			-- error("cant find this permission " .. permission)
 		end
 	end
@@ -82,9 +83,11 @@ function normalize_function(command, name)
 	command.name = name
 	command.id = name
 	if command.permissions == nil then
-		error(`command {name} has no permissions`)
+		warn(`command {name} has no explicit permissions. Defaulting to none`)
+		command.permissions = {}
 	end
 	if command.overloads == nil then
+		warn(`command {name} has no explicit overloads. Defaulting to any`)
 		command.overloads = {
 			{
 				returns = "any",
@@ -118,12 +121,87 @@ end
 function serialize_config(config: Config, user_permission: string)
 	local serialized_config = {
 		user_permissions = config.expanded_permission_types[user_permission],
-		extras = config.replicated_extras,
+		extras_shared = config.replicated_extras_shared,
+		extras_client = config.extras_client,
+		function_prototypes = config.function_prototypes,
 	}
 	if has_permission({ "view_permissions" }, config.expanded_permission_types[user_permission]) then
 		serialized_config.permissions = config.permissions
 	end
 	return serialized_config
+end
+
+function deep_equal(a: any, b: any): boolean
+	if type(a) ~= type(b) then
+		return false
+	end
+	if type(a) == "table" then
+		if #a ~= #b then
+			return false
+		end
+		for k, v in a do
+			if not deep_equal(v, b[k]) then
+				return false
+			end
+		end
+		return true
+	end
+	return a == b
+end
+
+function reload_commands(functions_by_id, functions_namespace, commands_to_register, user_permissions: any?)
+	functions_namespace.functions = {}
+	print(commands_to_register)
+	for _, commands in commands_to_register do
+		for name, command in commands do
+			if command.type == "namespace" then
+				error "todo: namespace"
+			end
+			if command.permissions and user_permissions then
+				if not has_permission(command.permissions, user_permissions) then
+					continue
+				end
+			end
+			normalize_function(command, name)
+			if functions_by_id[name] then
+				local original = functions_by_id[name]
+				command = original
+			else
+				functions_by_id[name] = command
+				functions_namespace.functions[name] = command
+			end
+			if command.alias then
+				for _, alias in command.alias do
+					functions_namespace.functions[alias] = command
+				end
+			end
+		end
+	end
+
+	return functions_namespace
+end
+
+function apply_prototypes(functions_by_id, functions_namespace, function_prototypes_namespace, user_permissions: any?)
+	for name, command in function_prototypes_namespace.functions do
+		if command.type == "namespace" then
+			error "todo: namespace"
+		end
+		if command.permissions and user_permissions then
+			if not has_permission(command.permissions, user_permissions) then
+				continue
+			end
+		end
+		command.server_run = "<server_run>"
+		if not functions_by_id[name] then
+			functions_by_id[name] = command
+			functions_namespace.functions[name] = command
+		else
+			local original = functions_by_id[name]
+			for k, v in command do
+				original[k] = v
+			end
+		end
+	end
 end
 
 return {
@@ -134,4 +212,6 @@ return {
 	set_permission = set_permission,
 	compare_ranks = compare_ranks,
 	serialize_config = serialize_config,
+	reload_commands = reload_commands,
+	apply_prototypes = apply_prototypes,
 }

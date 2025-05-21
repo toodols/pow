@@ -16,3 +16,5 @@ repeat 50 { /* for i = 1, 50 do */
 
 print (get text) /* print (text) */
 ```
+
+Command format

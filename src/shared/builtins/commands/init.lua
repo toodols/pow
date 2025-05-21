@@ -1,3 +1,5 @@
+local RunService = game:GetService "RunService"
+
 local types = require(script.Parent.Parent.types)
 local admin_commands = require(script.admin)
 local control_flow_commands = require(script.control_flow)
@@ -23,8 +25,8 @@ local builtin_commands: {
 builtin_commands.clear = {
 	description = "clears the console.",
 	permissions = { "debug" },
-	run = function(context)
-		context:clear_logs()
+	client_run = function(context: Context)
+		context.process.logs = {}
 	end,
 	overloads = {
 		{ returns = "nil", args = {} },
@@ -34,10 +36,10 @@ builtin_commands.clear = {
 builtin_commands.bind_tool = {
 	description = "Binds a tool to a function",
 	permissions = { "moderator" },
-	run = function(context)
+	server_run = function(context)
 		local tool = context.args[1]
 		tool.Activated:Connect(function()
-			context:run_function(context.args[2], {})
+			context.runtime.run_function(context.process, context.args[2])
 		end)
 	end,
 	overloads = {
@@ -57,11 +59,8 @@ builtin_commands.bind_tool = {
 builtin_commands.bind = {
 	description = "Binds a function to a key",
 	permissions = { "moderator" },
-	run = function(context)
-		table.insert(context.process.bindings, {
-			key = context.args[1],
-			func = context.args[2],
-		})
+	client_run = function(context)
+		context.process.bindings[context.args[1]] = context.args[2]
 	end,
 	overloads = {
 		{
@@ -76,6 +75,42 @@ builtin_commands.bind = {
 					type = "function",
 				},
 			},
+		},
+	},
+}
+
+builtin_commands.unbind = {
+	description = "Unbinds a function from a key",
+	permissions = { "moderator" },
+	client_run = function(context)
+		context.process.bindings[context.args[1]] = nil
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Key",
+					type = "keycode",
+				},
+			},
+		},
+	},
+}
+builtin_commands.get_run_context = {
+	description = "Returns whether this command is being ran on the server or the client",
+	permissions = { "moderator" },
+	run = function(context)
+		if RunService:IsClient() then
+			return "client"
+		else
+			return "server"
+		end
+	end,
+	overloads = {
+		{
+			returns = "string",
+			args = {},
 		},
 	},
 }

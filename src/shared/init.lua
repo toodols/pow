@@ -12,32 +12,6 @@ type Type = types.Type
 type Config = types.Config
 type PartialConfig = types.PartialConfig
 
-function reload_commands(functions_namespace, commands_to_register, user_permissions)
-	functions_namespace.functions = {}
-	for _, commands in commands_to_register do
-		for name, command in commands do
-			if command.permissions then
-				if not util.has_permission(command.permissions, user_permissions) then
-					continue
-				end
-			end
-			util.normalize_function(command, name)
-			functions_namespace.functions[name] = command
-
-			if command.alias then
-				for _, alias in command.alias do
-					if functions_namespace.functions[alias] then
-						error(`command {alias} already exists`)
-					end
-					functions_namespace.functions[alias] = command
-				end
-			end
-		end
-	end
-
-	return functions_namespace
-end
-
 function init_client(config_: PartialConfig?)
 	local remote
 	if config_ == nil then
@@ -57,30 +31,35 @@ function init_client(config_: PartialConfig?)
 	local registered_types = table.clone(builtins.builtin_types)
 	local commands_to_register = { builtins.builtin_commands }
 	local functions_namespace = { type = "namespace", functions = {} }
+	local functions_by_id = {}
 
 	local client_requests: { [string]: (...any) -> any } = {}
 
 	local state = { tabs = {} } :: PowClient
 
-	local extras
-	if config.extras then
-		extras = require(config.extras)()
-		if extras.commands then
-			table.insert(commands_to_register, extras.commands)
+	local extras = { commands = {}, types = {}, client_requests = client_requests }
+	if config.extras_client then
+		for _, client_extra in config.extras_client do
+			require(client_extra)(extras)
 		end
-		if extras.types then
-			for name, type in extras.types do
-				registered_types[name] = type
-			end
-		end
-		if extras.client_requests then
-			for name, func in extras.client_requests do
-				client_requests[name] = func
-			end
+	end
+	if config.extras_shared then
+		for _, shared_extra in config.extras_shared do
+			require(shared_extra)(extras)
 		end
 	end
 
-	reload_commands(functions_namespace, commands_to_register, config.user_permissions)
+	for name, type in extras.types do
+		if registered_types[name] then
+			error("type " .. name .. " already registered")
+		end
+		registered_types[name] = type
+	end
+
+	table.insert(commands_to_register, extras.commands)
+
+	util.reload_commands(functions_by_id, functions_namespace, commands_to_register, config.user_permissions)
+	util.apply_prototypes(functions_by_id, functions_namespace, config.function_prototypes, config.user_permissions)
 
 	remote.OnClientInvoke = function(type, data)
 		if type == "client_request" then
@@ -90,22 +69,37 @@ function init_client(config_: PartialConfig?)
 			else
 				error("no client request " .. data.type)
 			end
+		elseif type == "client_run" then
+			local process = state.tabs[state.current_tab]
+			local fun = functions_by_id[data.function_id]
+			return runtime.run_function(process, fun, data.args, data.data)
+		elseif type == "log" then
+			local process = state.tabs[data.process_id]
+			table.insert(process.logs, data.log)
+			state.ui.update(state)
+		-- this is for sudo where the process is unknown
 		elseif type == "run_command" then
 			local process = state.tabs[state.current_tab]
 			if data["function"] then
-				if data["function"].type == "custom_command" then
-					process:run_command_ast(data["function"])
+				if data["function"].type == "custom_function" then
+					return process:run_command_ast(data["function"].commands)
 				else
-					error "cant"
+					return { err = "what" }
 				end
 			elseif data.command_text then
-				process:run_command(data.command_text)
+				return process:run_command(data.command_text)
 			end
 		elseif type == "config_updated" then
 			config.user_permissions = data.user_permissions
 			config.permissions = data.permissions
 
-			reload_commands(functions_namespace, commands_to_register, config.user_permissions)
+			util.reload_commands(functions_by_id, functions_namespace, commands_to_register, config.user_permissions)
+			util.apply_prototypes(
+				functions_by_id,
+				functions_namespace,
+				config.function_prototypes,
+				config.user_permissions
+			)
 		end
 		return
 	end
@@ -143,6 +137,19 @@ function init_client(config_: PartialConfig?)
 	state.submit_command = function(command_text: string)
 		local current_process = state.tabs[state.current_tab]
 		runtime.run_user_command(current_process, command_text)
+		local processes = {}
+		for id, proc in state.tabs do
+			processes[id] = {
+				id = id,
+				name = proc.name,
+				logs = proc.logs,
+				history = proc.history,
+				global_scope = {
+					variables = proc.global_scope.variables,
+				},
+			}
+		end
+		remote:InvokeServer("telemetry", processes)
 		state.ui.update(state)
 	end
 
@@ -155,8 +162,8 @@ function init_client(config_: PartialConfig?)
 	}
 	state.ui = ui.init_ui(state)
 
-	if extras and extras.auto_run then
-		for _, command in extras.auto_run do
+	if config.auto_run then
+		for _, command in config.auto_run do
 			state.submit_command(command)
 		end
 	end

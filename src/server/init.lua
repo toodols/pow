@@ -11,14 +11,19 @@ local types = require(script.shared.types)
 type PartialConfig = types.PartialConfig
 type Config = types.Config
 type Process = types.Process
+type Log = types.Log
 
 function load_permissions(config: Config, done: () -> nil)
 	if config.disable_data_store then
 		return
 	end
-	task.spawn(function()
-		local data_store = DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
-
+	task.defer(function()
+		local success, data_store = pcall(function()
+			return DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
+		end)
+		if not success then
+			return
+		end
 		local permissions = data_store:GetAsync "permissions"
 		if permissions then
 			for permission, ranks in permissions do
@@ -65,10 +70,21 @@ function init(config_: PartialConfig)
 		shared_root.Name = "pow"
 	end
 
-	if config.extras then
-		config.replicated_extras = config.extras:Clone()
-		config.replicated_extras.Parent = shared_root
-		config.replicated_extras.Name = "replicated_extras"
+	if config.extras_shared then
+		local list = {}
+		for _, extra in config.extras_shared do
+			local cloned = extra:Clone()
+			cloned.Parent = shared_root
+			cloned.Name = "replicated_extras"
+			table.insert(list, cloned)
+		end
+		config.replicated_extras_shared = list
+	end
+
+	if config.extras_client then
+		for _, extra in config.extras_client do
+			extra.Parent = shared_root
+		end
 	end
 
 	load_permissions(config, function()
@@ -78,42 +94,64 @@ function init(config_: PartialConfig)
 		end
 	end)
 
-	local commands = {}
-	for name, command in builtins.builtin_commands do
-		local id = name
-		util.normalize_function(command, id)
-		command.id = id
-		commands[name] = command
-	end
+	local functions_to_register = { builtins.builtin_commands }
+	local functions_by_id: { [string]: any } = {}
+	local functions_namespace = { type = "namespace", functions = {} }
 
-	local extras = require(config.extras)()
-	if extras.commands then
-		for name, command in extras.commands do
-			local id = name
-			util.normalize_function(command, id)
-			command.id = id
-			commands[name] = command
+	local extras: { commands: { [string]: any }, types: { [string]: any }, permission_types: { [string]: any } } =
+		{ commands = {}, types = {}, permission_types = {} }
+
+	if config.extras_shared then
+		for _, extra in config.extras_shared do
+			require(extra)(extras)
 		end
 	end
+
+	local server_extras = { commands = {}, types = {}, permission_types = {} }
+	if config.extras_server then
+		for _, extra in config.extras_server do
+			require(extra)(server_extras)
+		end
+	end
+	table.insert(functions_to_register, extras.commands)
+	table.insert(functions_to_register, server_extras.commands)
+
+	util.reload_commands(functions_by_id, functions_namespace, functions_to_register)
+
+	local server_functions_namespace = { type = "namespace", functions = {} }
+	util.reload_commands({}, server_functions_namespace, { server_extras.commands })
+	config.function_prototypes = server_functions_namespace
 
 	local registered_types = table.clone(builtins.builtin_types)
-	if extras.types then
-		for name, type in extras.types do
-			registered_types[name] = type
+	for name, type in extras.types do
+		if registered_types[name] then
+			error(`type {name} already exists`)
 		end
+		registered_types[name] = type
+	end
+	for name, type in server_extras.types do
+		error "Do not add types in server extras"
 	end
 
 	config.permission_types = {}
-	if extras.permission_types then
-		for name, type in extras.permission_types do
-			config.permission_types[name] = type
-		end
+	for name, type in extras.permission_types do
+		config.permission_types[name] = type
 	end
 	for name, type in builtins.builtin_permission_types do
 		config.permission_types[name] = type
 	end
+	for name, type in server_extras.permission_types do
+		error "Do not add permission types in server extras"
+	end
 
 	config.expanded_permission_types = util.expand_permissions(config.permission_types)
+
+	local server_process = runtime.new_process()
+	server_process.config = config
+	server_process.global_scope.functions = functions_namespace
+	server_process.types = registered_types
+
+	local user_processes: { [Player]: { [string]: Process } } = {}
 
 	remote.OnServerInvoke = function(player, type, data)
 		local user_permission = util.get_user_permission_and_rank(config.permissions, player.UserId)
@@ -121,18 +159,17 @@ function init(config_: PartialConfig)
 		if type == "get_config" then
 			return util.serialize_config(config, user_permission)
 		elseif type == "telemetry" then
-			print "got telemetry"
+			user_processes[player] = data
 		elseif type == "server_run" then
-			local command = commands[data.function_id]
-			if not command then
+			local fun = functions_by_id[data.function_id]
+			if not fun then
 				return { err = `server: command {data.function_id} not found` }
 			end
-			if not util.has_permission(command.permissions, user_expanded_permission) then
+			if not util.has_permission(fun.permissions, user_expanded_permission) then
 				return { err = `server: insufficient permission` }
 			end
 
-			local coerced_res =
-				runtime.coerce_args(data.args, command.overloads, { types = registered_types } :: Process)
+			local coerced_res = runtime.coerce_args(data.args, fun.overloads, { types = registered_types } :: Process)
 
 			if coerced_res.err then
 				return { err = "server: " .. coerced_res.err }
@@ -140,24 +177,23 @@ function init(config_: PartialConfig)
 			if coerced_res.ok == nil then
 				return { err = "server: no overload found" }
 			end
-			if command.server_run == nil then
-				return { err = "server: no server_run" }
-			end
 
-			local success, result = pcall(function()
-				return command.server_run {
-					remote = remote,
-					executor = player,
-					args = coerced_res.ok,
-					client_data = data.client_data,
-					config = config,
-				}
-			end)
-			if success then
-				return { ok = result }
-			else
-				return { err = "server: " .. result }
-			end
+			local result = runtime.run_function(
+				{
+					id = data.process_id,
+					config = server_process.config,
+					global_scope = server_process.global_scope,
+					owner = player,
+					types = server_process.types,
+					server = {
+						user_processes = user_processes,
+					},
+				} :: Process,
+				fun,
+				coerced_res.ok,
+				data.data
+			)
+			return result
 		end
 		return nil
 	end

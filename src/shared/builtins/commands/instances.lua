@@ -167,7 +167,7 @@ commands.equipped = {
 commands.target = {
 	description = "Returns the target of the mouse",
 	permissions = { "moderator" },
-	run = function(context)
+	client_run = function(context)
 		local mouse = Players.LocalPlayer:GetMouse()
 		return mouse.Target
 	end,
@@ -273,8 +273,8 @@ commands.userid = {
 commands.hit = {
 	description = "Returns the CFrame under the mouse",
 	permissions = { "moderator" },
-	run = function(context)
-		return Players.LocalPlayer:GetMouse().Hit
+	client_run = function(context)
+		return context.executor:GetMouse().Hit
 	end,
 	overloads = {
 		{
