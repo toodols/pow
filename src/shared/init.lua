@@ -82,12 +82,12 @@ function init_client(config_: PartialConfig?)
 			local process = state.tabs[state.current_tab]
 			if data["function"] then
 				if data["function"].type == "custom_function" then
-					return process:run_command_ast(data["function"].commands)
+					return runtime.run_commands(process, data["function"].commands, { args = {} })
 				else
 					return { err = "what" }
 				end
 			elseif data.command_text then
-				return process:run_command(data.command_text)
+				return runtime.run_commands_string(process, data.command_text)
 			end
 		elseif type == "config_updated" then
 			config.user_permissions = data.user_permissions

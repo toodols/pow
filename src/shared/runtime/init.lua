@@ -38,17 +38,6 @@ function new_process()
 		bindings = {},
 		logs = {},
 		on_log_updated = function() end,
-		run_command_ast = function(self, commands: RootCommands)
-			local result = run_commands(self, commands, { args = {} })
-			return result
-		end,
-		run_command = function(self, command_text: string)
-			local parse_success, result, parse_state = parser.parse(command_text)
-			if not parse_success then
-				return { err = result }
-			end
-			return run_commands(self, result, { args = {} })
-		end,
 		destroy = function() end,
 	}
 	local conn = UserInputService.InputBegan:Connect(function(input_obj, game_processed)
@@ -202,6 +191,14 @@ function run_lua_function(
 	end
 end
 
+function run_commands_string(process: Process, text: string): Result<any, string>
+	local success, parse_result, parse_state = parser.parse(text)
+	if not success then
+		return { err = parse_result }
+	end
+	return run_commands(process, parse_result, { args = {} })
+end
+
 function run_command(process: Process, command: Command, state: State): Result<any, string>
 	if command.type == "empty_command" then
 		return { ok = nil }
@@ -318,6 +315,8 @@ runtime = {
 	new_scope = new_scope,
 	new_process = new_process,
 	run_user_command = run_user_command,
+	run_commands = run_commands,
+	run_commands_string = run_commands_string,
 	run_function = run_function,
 	find_function = find_function,
 	coerce_args = typing.coerce_args,
