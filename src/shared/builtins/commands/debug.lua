@@ -41,20 +41,20 @@ commands.echo = {
 	},
 }
 
-commands.test_recursive = {
-	description = "Returns a recursive value",
-	permissions = { "debug" },
-	run = function(context)
-		local recursive = {}
-		recursive.foo = recursive
-		return recursive
-	end,
-	overloads = {
-		{
-			returns = "any",
-			args = {},
-		},
-	},
-}
+-- commands.test_recursive = {
+-- 	description = "Returns a recursive value",
+-- 	permissions = { "debug" },
+-- 	run = function(context)
+-- 		local recursive = {}
+-- 		recursive.foo = recursive
+-- 		return recursive
+-- 	end,
+-- 	overloads = {
+-- 		{
+-- 			returns = "any",
+-- 			args = {},
+-- 		},
+-- 	},
+-- }
 
 return commands

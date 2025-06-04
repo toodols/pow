@@ -37,7 +37,7 @@ function init_client(config_: PartialConfig?)
 
 	local state = { tabs = {} } :: PowClient
 
-	local extras = { commands = {}, types = {}, client_requests = client_requests }
+	local extras = { commands = {}, types = {}, permission_types = {}, client_requests = {} }
 	if config.extras_client then
 		for _, client_extra in config.extras_client do
 			require(client_extra)(extras)

@@ -99,7 +99,7 @@ function init(config_: PartialConfig)
 	local functions_namespace = { type = "namespace", functions = {} }
 
 	local extras: { commands: { [string]: any }, types: { [string]: any }, permission_types: { [string]: any } } =
-		{ commands = {}, types = {}, permission_types = {} }
+		{ commands = {}, types = {}, permission_types = {}, client_requests = {} }
 
 	if config.extras_shared then
 		for _, extra in config.extras_shared do
@@ -135,10 +135,20 @@ function init(config_: PartialConfig)
 
 	config.permission_types = {}
 	for name, type in extras.permission_types do
-		config.permission_types[name] = type
+		if config.permission_types[name] == nil then
+			config.permission_types[name] = {}
+		end
+		for _, inherited in type do
+			table.insert(config.permission_types[name], inherited)
+		end
 	end
 	for name, type in builtins.builtin_permission_types do
-		config.permission_types[name] = type
+		if config.permission_types[name] == nil then
+			config.permission_types[name] = {}
+		end
+		for _, inherited in type do
+			table.insert(config.permission_types[name], inherited)
+		end
 	end
 	for name, type in server_extras.permission_types do
 		error "Do not add permission types in server extras"

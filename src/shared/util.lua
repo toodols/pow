@@ -151,7 +151,6 @@ end
 
 function reload_commands(functions_by_id, functions_namespace, commands_to_register, user_permissions: any?)
 	functions_namespace.functions = {}
-	print(commands_to_register)
 	for _, commands in commands_to_register do
 		for name, command in commands do
 			if command.type == "namespace" then

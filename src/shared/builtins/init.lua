@@ -15,9 +15,9 @@ local builtin_permission_types = {
 	-- standard 5-tier roles found in most admin commands
 	owner = { "admin" },
 	admin = { "moderator", "control_flow", "automation" },
-	moderator = { "vip", "fun", "math", "debug", "view_permissions" },
+	moderator = { "vip", "fun", "math", "view_permissions" },
 	vip = { "normal" },
-	normal = {},
+	normal = { "debug" },
 
 	-- other partial permission types
 	fun = {},
