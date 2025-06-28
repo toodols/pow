@@ -191,6 +191,7 @@ builtin_types.player = {
 					replace_at = replace_at,
 					match_start = 1,
 					match_end = #text,
+					display_text = `@me ({Players.LocalPlayer.Name})`,
 				},
 			}
 		end
@@ -198,7 +199,9 @@ builtin_types.player = {
 		for _, player in Players:GetPlayers() do
 			if player.Name:sub(1, #text):lower() == text:lower() then
 				table.insert(matches, {
-					text = player.Name,
+					text = if player.Name == player.DisplayName
+						then player.Name
+						else `{player.Name} ({player.DisplayName})`,
 					replace_at = replace_at,
 					match_start = 1,
 					match_end = #text,
