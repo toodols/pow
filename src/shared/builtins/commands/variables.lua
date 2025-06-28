@@ -2,7 +2,7 @@ local commands = {}
 
 commands.out = {
 	description = "Returns the value of the nth result",
-	permissions = {},
+	permissions = {"variables"},
 	run = function(context)
 		return context.process.results[context.args[1]]
 	end,
@@ -21,7 +21,7 @@ commands.out = {
 
 commands["set"] = {
 	description = "Sets a variable",
-	permissions = { "moderator" },
+	permissions = { "variables" },
 	run = function(context)
 		context.process.global_scope.variables[context.args[1]] = context.args[2]
 		return context.args[2]
@@ -54,7 +54,7 @@ commands["set"] = {
 
 commands.increment = {
 	description = "Increments a variable",
-	permissions = { "moderator" },
+	permissions = { "variables" },
 	run = function(context)
 		local variables = context.process.global_scope.variables
 		local name = context.args[1]
@@ -79,7 +79,7 @@ commands.increment = {
 
 commands["get"] = {
 	description = "Gets a variable",
-	permissions = { "moderator" },
+	permissions = { "variables" },
 	run = function(context)
 		return context.process.global_scope.variables[context.args[1]]
 	end,

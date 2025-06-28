@@ -13,7 +13,7 @@ local commands = {}
 commands.view_permissions = {
 	description = "Display all permissions.",
 	permissions = { "view_permissions" },
-	run = function(context)
+	server_run = function(context)
 		return context.process.config.permissions
 	end,
 	overloads = {
@@ -24,28 +24,32 @@ commands.view_permissions = {
 	},
 }
 
+local function save_user_permission(config: Config, userid: number)
+	if config.disable_data_store then
+		return
+	end
+	local permission, rank = util.get_user_permission_and_rank(config.permissions, userid)
+	if permission == "root" or permission == "normal" then
+		return
+	end
+
+	local data_store = DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
+	local succ, err = pcall(function()
+		data_store:UpdateAsync("permissions", function(value)
+			value = value or config.permissions
+			util.set_permission(value, userid, permission, rank)
+			return value
+		end)
+	end)
+	if not succ then
+		print("updating permissions failed with error", err)
+	end
+end
+
 commands.set_permission = {
 	description = "Sets a player's permission.\n<b>Setting your own permission will permanently change it unless it is hard coded</b>",
 	permissions = { "admin" },
 	server_run = function(context)
-		local function save_user_permission(config: Config, userid: number)
-			if config.disable_data_store then
-				return
-			end
-			local permission, rank = util.get_user_permission_and_rank(config.permissions, userid)
-			if permission == "root" or permission == "normal" then
-				return
-			end
-
-			local data_store =
-				DataStoreService:GetDataStore(config.data_store_key or "pow_default_data_store_key", "v0")
-			data_store:UpdateAsync("permissions", function(value)
-				value = value or config.permissions
-				util.set_permission(value, userid, permission, rank)
-				return value
-			end)
-		end
-
 		local executor = context.executor
 		local target: Player = context.args[1]
 		if not util.compare_ranks(context.process.config.permissions, executor, target) then
@@ -71,15 +75,15 @@ commands.set_permission = {
 		end
 		util.set_permission(context.process.config.permissions, target.UserId, target_permission, rank)
 		save_user_permission(context.process.config, target.UserId)
-		for _, player in Players:GetPlayers() do
-			local player_permission =
-				util.get_user_permission_and_rank(context.process.config.permissions, player.UserId)
-			pow_remote:InvokeClient(
-				player,
-				"get_config",
-				util.serialize_config(context.process.config, player_permission)
-			)
-		end
+
+		local player_permission = util.get_user_permission_and_rank(context.process.config.permissions, target.UserId)
+		-- print("context.process.config", context.process.config)
+		-- print("player_permission", player_permission)
+		pow_remote:InvokeClient(
+			target,
+			"config_updated",
+			util.serialize_config(context.process.config, player_permission)
+		)
 	end,
 	overloads = {
 		{
@@ -95,6 +99,198 @@ commands.set_permission = {
 				},
 				{
 					name = "Rank",
+					type = "number",
+				},
+			},
+		},
+	},
+}
+
+commands.ban = {
+	description = "Ban players",
+	permissions = { "admin" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+				{
+					name = "Duration",
+					type = "number",
+					description = "Ban duration in seconds. Set to -1 for permanent",
+				},
+				{
+					name = "Display Reason",
+					type = "string",
+				},
+				{
+					name = "Private Reason",
+					type = "string",
+				},
+				{
+					name = "Exclude Alt Accounts",
+					type = "boolean",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local user_ids = {}
+		for _, player in context.args[1] do
+			table.insert(user_ids, player.UserId)
+		end
+		Players:BanAsync {
+			UserIds = user_ids,
+			Duration = context.args[2],
+			DisplayReason = context.args[3],
+			PrivateReason = context.args[4],
+			ExcludeAltAccounts = context.args[5],
+		}
+	end,
+}
+
+commands.unban = {
+	description = "Unban players",
+	permissions = { "admin" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local user_ids = {}
+		for _, player in context.args[1] do
+			table.insert(user_ids, player.UserId)
+		end
+		Players:UnbanAsync {
+			UserIds = user_ids,
+		}
+	end,
+}
+
+commands.morph_user = {
+	description = "Morph as a user",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "morph",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+				{
+					name = "User Id",
+					type = "number",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local description = Players:GetHumanoidDescriptionFromUserId(context.args[2])
+		for _, player in context.args[1] do
+			player.Character:FindFirstChildOfClass("Humanoid"):ApplyDescription(description)
+		end
+	end,
+}
+
+commands.fly = {
+	description = "Fly",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+		{
+			returns = "nil",
+			args = {
+				{ name = "Players", type = "players" },
+			},
+		},
+	},
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			pow_remote:InvokeClient(player, "client_request", {
+				type = "set_flying",
+				args = { true },
+			})
+		end
+	end,
+}
+
+commands.unfly = {
+	description = "Unfly",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+		{
+			returns = "nil",
+			args = {
+				{ name = "Players", type = "players" },
+			},
+		},
+	},
+	server_run = function(context)
+		local players = context.args[1] or { context.executor }
+		for _, player in players do
+			pow_remote:InvokeClient(player, "client_request", {
+				type = "set_flying",
+				args = { false },
+			})
+		end
+	end,
+}
+
+commands.scale = {
+	description = "Scales up a player",
+	permissions = { "moderator" },
+	server_run = function(context)
+		for _, plr in context.args[1] do
+			local humanoid: Humanoid = plr.Character:FindFirstChildOfClass "Humanoid"
+			local description = humanoid:GetAppliedDescription()
+			description.HeadScale = context.args[2]
+			description.HeightScale = context.args[3]
+			description.DepthScale = context.args[4]
+			description.WidthScale = context.args[5]
+			humanoid:ApplyDescription(description)
+		end
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Targets",
+					type = "players",
+				},
+				{
+					name = "Head Scale",
+					type = "number",
+				},
+				{
+					name = "Height Scale",
+					type = "number",
+				},
+				{
+					name = "Depth Scale",
+					type = "number",
+				},
+				{
+					name = "Width Scale",
 					type = "number",
 				},
 			},
@@ -555,7 +751,7 @@ commands.view = {
 	},
 }
 
-commands["kick"] = {
+commands.kick = {
 	description = "Kicks players",
 	permissions = { "admin" },
 	server_run = function(context)
@@ -650,7 +846,7 @@ commands.walkspeed = {
 	},
 }
 
-commands["explode"] = {
+commands.explode = {
 	description = "Explodes players",
 	permissions = { "moderator", "fun" },
 	server_run = function(context)

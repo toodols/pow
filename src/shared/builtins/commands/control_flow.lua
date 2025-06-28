@@ -1,16 +1,25 @@
+function unwrap(res)
+	if res.err ~= nil then
+		error(res)
+	end
+	return res.ok
+end
 local commands = {}
 
 commands["repeat"] = {
-	description = "Repeats a function a number of times",
+	description = "Repeats a function a number of times. Returns all results as a table",
 	permissions = { "control_flow" },
 	run = function(context)
+		local results = {}
 		for i = 1, context.args[1] do
-			context.runtime.run_function(context.process, context.args[2])
+			local res = context.runtime.run_function(context.process, context.args[2])
+			table.insert(results, unwrap(res))
 		end
+		return results
 	end,
 	overloads = {
 		{
-			returns = "nil",
+			returns = "table",
 			args = {
 				{
 					name = "Times",
@@ -25,7 +34,43 @@ commands["repeat"] = {
 	},
 }
 
-commands.client = {
+commands["foreach"] = {
+	description = "Iterates over a table with a variable",
+	permissions = { "control_flow", "variables" },
+	overloads = {
+		{
+			returns = "table",
+			args = {
+				{
+					name = "Variable",
+					type = "variable_name",
+				},
+				{
+					name = "Table",
+					type = "table",
+				},
+				{
+					name = "Body",
+					type = "function",
+				},
+			},
+		},
+	},
+	run = function(context)
+		local results = {}
+		local var_name = context.args[1]
+		local tab = context.args[2]
+		local fun = context.args[3]
+		for _, value in tab do
+			context.process.global_scope.variables[var_name] = value
+			local res = context.runtime.run_function(context.process, fun)
+			table.insert(results, unwrap(res))
+		end
+		return results
+	end,
+}
+
+commands["client"] = {
 	description = "Forces a function to run in client context",
 	permissions = { "control_flow" },
 	client_run = function(context)
@@ -43,11 +88,11 @@ commands.client = {
 		},
 	},
 }
-commands.server = {
+commands["server"] = {
 	description = "Forces a function to run in server context",
 	permissions = { "control_flow" },
 	server_run = function(context)
-		return context.runtime.run_function(context.process, context.args[1])
+		unwrap(context.runtime.run_function(context.process, context.args[1]))
 	end,
 	overloads = {
 		{

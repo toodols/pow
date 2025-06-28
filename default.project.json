@@ -11,6 +11,9 @@
 			}
 		},
 		"ServerScriptService": {
+			"pow_init": {
+				"$path": "pow_init.server.lua"
+			},
 			"pow": {
 				"$path": "src/server",
 				"shared": {

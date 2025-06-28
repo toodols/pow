@@ -167,8 +167,8 @@ function reload_commands(functions_by_id, functions_namespace, commands_to_regis
 				command = original
 			else
 				functions_by_id[name] = command
-				functions_namespace.functions[name] = command
 			end
+			functions_namespace.functions[name] = command
 			if command.alias then
 				for _, alias in command.alias do
 					functions_namespace.functions[alias] = command
@@ -176,7 +176,6 @@ function reload_commands(functions_by_id, functions_namespace, commands_to_regis
 			end
 		end
 	end
-
 	return functions_namespace
 end
 

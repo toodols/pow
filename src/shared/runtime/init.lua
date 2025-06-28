@@ -136,6 +136,7 @@ function find_function_in_current_scope(scope: Scope, path: string): Result<Func
 	return { err = "what" }
 end
 
+local global = {}
 function run_lua_function(
 	process: Process,
 	fn_id: string,
@@ -144,6 +145,7 @@ function run_lua_function(
 	data: any
 ): Result<any, string>
 	local context: Context = {
+		global = global,
 		process = process,
 		args = args,
 		executor = process.owner,

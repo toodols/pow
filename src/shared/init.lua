@@ -33,7 +33,7 @@ function init_client(config_: PartialConfig?)
 	local functions_namespace = { type = "namespace", functions = {} }
 	local functions_by_id = {}
 
-	local client_requests: { [string]: (...any) -> any } = {}
+	local client_requests: { [string]: (...any) -> any } = table.clone(builtins.builtin_client_requests)
 
 	local state = { tabs = {} } :: PowClient
 
@@ -65,6 +65,7 @@ function init_client(config_: PartialConfig?)
 		if type == "client_request" then
 			local func = client_requests[data.type]
 			if func then
+				print(data.args)
 				return func(unpack(data.args))
 			else
 				error("no client request " .. data.type)
@@ -100,6 +101,8 @@ function init_client(config_: PartialConfig?)
 				config.function_prototypes,
 				config.user_permissions
 			)
+		else
+			error("unknown type", type)
 		end
 		return
 	end
