@@ -90,7 +90,7 @@ function init(config_: PartialConfig)
 	load_permissions(config, function()
 		for _, player in Players:GetPlayers() do
 			local player_permission = util.get_user_permission_and_rank(config.permissions, player.UserId)
-			remote:InvokeClient(player, "get_config", util.serialize_config(config, player_permission))
+			remote:InvokeClient(player, "config_updated", util.serialize_config(config, player_permission))
 		end
 	end)
 

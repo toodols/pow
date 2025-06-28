@@ -102,7 +102,7 @@ function init_client(config_: PartialConfig?)
 				config.user_permissions
 			)
 		else
-			error("unknown type", type)
+			error(`unknown type {type}`)
 		end
 		return
 	end
