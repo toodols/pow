@@ -491,6 +491,20 @@ builtin_types.keycode = {
 		return matches
 	end,
 }
+builtin_types.test_quoted_enum = {
+	autocomplete_simple = {
+		`hello world`,
+		`yes please`,
+		`abc`,
+		`def`,
+		`ggg`,
+		`hhh`,
+		`good`,
+		`bad`,
+		`easy`,
+		`more`,
+	},
+}
 
 return {
 	builtin_types = builtin_types,

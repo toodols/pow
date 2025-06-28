@@ -114,7 +114,7 @@ function CommandBar(props: {
 		set_offset(x)
 		local succ, res, parser_state = parser.parse(text)
 
-		if parser_state == nil or parser_state.failState == nil then
+		if parser_state == nil or parser_state.fail_state == nil then
 			set_error {
 				enabled = true,
 				value = res,
@@ -122,8 +122,8 @@ function CommandBar(props: {
 			return
 		end
 
-		local fail_state = parser_state.failState
-		if fail_state.type == "commandPath" then
+		local fail_state = parser_state.fail_state
+		if fail_state.type == "command_path" then
 			local suggestions = {}
 			if #fail_state.path == 0 then
 				return
@@ -149,7 +149,7 @@ function CommandBar(props: {
 			}
 			set_autocomplete_index(0)
 			return
-		elseif fail_state.type == "commandArguments" then
+		elseif fail_state.type == "command_arguments" then
 			local args = {}
 			for i = 1, fail_state.argNum do
 				if fail_state.args[i] then
@@ -246,9 +246,11 @@ function CommandBar(props: {
 				end
 				for _, value in values do
 					if value:sub(1, #text):lower() == text:lower() then
+						local is_word = value:match "^[a-zA-Z0-9%_-%.$,@]+$" ~= nil
 						table.insert(suggestions, {
 							replace_at = replace_at,
-							text = value,
+							display_text = value,
+							text = if is_word then value else `"{value}"`,
 							match_start = 1,
 							match_end = #text,
 						})

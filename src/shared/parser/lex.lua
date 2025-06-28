@@ -1,4 +1,4 @@
-local function generatePatToken(pat, type)
+local function generate_pat_token(pat, type)
 	return function(text, start)
 		local t = text:match(pat, start)
 		return t and {
@@ -10,15 +10,15 @@ local function generatePatToken(pat, type)
 	end
 end
 
-local tkWord = generatePatToken("^[a-zA-Z0-9%_-%.$,@]+", "word")
+local tk_word = generate_pat_token("^[a-zA-Z0-9%_-%.$,@]+", "word")
 -- local tkSlash = generatePatToken("^/", "slash")
-local tkWhitespace = generatePatToken("^%s+", "whitespace")
-local tkLeftBracket = generatePatToken("^{", "leftBracket")
-local tkRightBracket = generatePatToken("^}", "rightBracket")
-local tkLeftParen = generatePatToken("^%(", "leftParen")
-local tkRightParen = generatePatToken("^%)", "rightParen")
-local tkComma = generatePatToken("^,", "comma")
-local tkSemicolon = generatePatToken("^;", "semicolon")
+local tk_whitespace = generate_pat_token("^%s+", "whitespace")
+local tk_left_bracket = generate_pat_token("^{", "left_bracket")
+local tk_right_bracket = generate_pat_token("^}", "right_bracket")
+local tk_left_paren = generate_pat_token("^%(", "left_paren")
+local tk_right_paren = generate_pat_token("^%)", "right_paren")
+local tk_comma = generate_pat_token("^,", "comma")
+local tk_semicolon = generate_pat_token("^;", "semicolon")
 
 -- local function tkParam(text, start)
 -- 	local t = text:match("^%@%d+", start)
@@ -33,7 +33,7 @@ local tkSemicolon = generatePatToken("^;", "semicolon")
 -- 		value = tonumber(t:sub(2)),
 -- 	}
 -- end
-local function tkNumber(text, start)
+local function tk_number(text, start)
 	local neg = false
 	if text:sub(start, start) == "-" then
 		neg = true
@@ -66,36 +66,42 @@ local function tkNumber(text, start)
 	}
 end
 
-local function tkString(text, start)
+local function tk_string(text, start)
 	local match = text:match('^"', start)
 	if not match then
 		return nil
 	end
-	local localStart = start + #match
+	local local_start = start + #match
 	while true do
-		local t = text:match("^\\.", localStart) or text:match('^[^"\\]', localStart)
+		local t = text:match("^\\.", local_start) or text:match('^[^"\\]', local_start)
 		if t then
-			localStart = localStart + #t
+			local_start = local_start + #t
 		else
 			break
 		end
 	end
-	local t = text:match('^"', localStart)
+	local t = text:match('^"', local_start)
 	if t then
-		localStart = localStart + #t
+		local_start = local_start + #t
 		return {
 			type = "string",
-			raw = text:sub(start, localStart - 1),
+			raw = text:sub(start, local_start - 1),
 			start = start,
-			value = text:sub(start + 1, localStart - 2):gsub("\\(.)", "%1"),
-			finish = localStart - 1,
+			value = text:sub(start + 1, local_start - 2):gsub("\\(.)", "%1"),
+			finish = local_start - 1,
 		}
 	else
-		return nil
+		return {
+			type = "incomplete_string",
+			raw = text:sub(start, local_start - 1),
+			start = start,
+			value = text:sub(start + 1, local_start - 1):gsub("\\(.)", "%1"),
+			finish = local_start - 1,
+		}
 	end
 end
 
-local function tkComment(text, start)
+local function tk_comment(text, start)
 	if text:sub(start, start + 1) ~= "/*" then
 		return
 	end
@@ -112,24 +118,24 @@ local function tkComment(text, start)
 	}
 end
 
-local tokenTypes = {
-	tkWhitespace,
-	tkWord,
+local token_types = {
+	tk_whitespace,
+	tk_word,
 	-- tkSlash,
-	tkNumber,
-	tkString,
-	tkLeftBracket,
-	tkRightBracket,
-	tkLeftParen,
-	tkRightParen,
-	tkComma,
-	tkSemicolon,
-	tkComment,
+	tk_number,
+	tk_string,
+	tk_left_bracket,
+	tk_right_bracket,
+	tk_left_paren,
+	tk_right_paren,
+	tk_comma,
+	tk_semicolon,
+	tk_comment,
 	-- tkParam,
 }
 
 -- Tokenizes until the current token exceeds the given position
-local function lexUntil(text, target)
+local function lex_until(text, target)
 	local tokens = {}
 	local pos = 1
 	while true do
@@ -137,8 +143,8 @@ local function lexUntil(text, target)
 			break
 		end
 		local t = nil
-		for _, tokenType in tokenTypes do
-			t = tokenType(text, pos)
+		for _, token_type in token_types do
+			t = token_type(text, pos)
 			if t then
 				break
 			end
@@ -157,7 +163,13 @@ local function lexUntil(text, target)
 end
 
 local function lex(text)
-	return lexUntil(text, #text)
+	return lex_until(text, #text)
 end
 
-return { lex = lex, lexUntil = lexUntil }
+function test()
+	local result = lex(`print 123 "hello`)
+	print(result)
+end
+test()
+
+return { lex = lex, lex_until = lex_until }

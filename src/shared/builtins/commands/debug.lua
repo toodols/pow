@@ -26,6 +26,22 @@ commands.print = {
 	},
 }
 
+commands.test_quoted_enum = {
+	permissions = { "debug" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "...",
+					type = "test_quoted_enum",
+				},
+			},
+		},
+	},
+	run = function() end,
+}
+
 commands.echo = {
 	alias = { "identity" },
 	description = "Returns a value.",

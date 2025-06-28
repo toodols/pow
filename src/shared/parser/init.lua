@@ -2,14 +2,14 @@
 local lex = require(script.lex)
 
 -- Considerations:
--- Should commandPath be parsed as one single token or a bunch of tokens?
+-- Should command_path be parsed as one single token or a bunch of tokens?
 -- Is a lexer even appropriate for this type of language?
 
 --[[
 	start = _? commands _?
 	commands = command (_? ";" _? commands)* (_? ";")?
-	command = commandPath _ (commandArg _)*
-	commandPath = word
+	command = command_path _ (commandArg _)*
+	command_path = word
 	commandArg = function | subcall | number | string
 	function = "{" _? commands _? "}"
 	number = [0-9]+(\.[0-9]+)?
@@ -89,28 +89,30 @@ function Parser.new(tokens)
 		self.finish = tokens[#tokens].finish
 	end
 	self.index = 1
-	self.failState = nil
+	self.fail_state = nil
 
 	return self
 end
 
-function Parser:expectToken(tokenType, failState)
+function Parser:expect_token(token_type, fail_state)
 	local token = self.tokens[self.index]
-	if not token or token.type ~= tokenType then
-		if failState then
-			self.failState = failState
+	if not token or token.type ~= token_type then
+		if fail_state then
+			self.fail_state = fail_state
 		end
 		if token then
-			error(`Expected token of type {tokenType} but got {token.type} at {token.start} {token.finish} {token.raw}`)
+			error(
+				`Expected token of type {token_type} but got {token.type} at {token.start} {token.finish} {token.raw}`
+			)
 		else
-			error(`Expected token of type {tokenType} but no more tokens`)
+			error(`Expected token of type {token_type} but no more tokens`)
 		end
 	end
 	self.index = self.index + 1
 	return token
 end
 
-function Parser:nextIs(...): boolean
+function Parser:next_is(...): boolean
 	if self.tokens[self.index] == nil then
 		return false
 	end
@@ -122,11 +124,11 @@ function Parser:nextIs(...): boolean
 	return false
 end
 
-function Parser:getPos(): number
+function Parser:get_pos(): number
 	return if self.tokens[self.index] then self.tokens[self.index].start else 0
 end
 
-function Parser:getFinish(): number
+function Parser:get_finish(): number
 	if self.tokens[self.index - 1] then
 		return self.tokens[self.index - 1].finish
 	else
@@ -134,27 +136,27 @@ function Parser:getFinish(): number
 	end
 end
 
-function Parser:parseCommands(): Commands
+function Parser:parse_commands(): Commands
 	local list: { Command } = {}
-	local start = self:getPos()
+	local start = self:get_pos()
 	local trailing_semi = false
 
 	while true do
-		if self:nextIs "word" then
-			table.insert(list, self:parseCommand())
-			if self:nextIs "semicolon" then
-				self:expectToken "semicolon"
+		if self:next_is "word" then
+			table.insert(list, self:parse_command())
+			if self:next_is "semicolon" then
+				self:expect_token "semicolon"
 				trailing_semi = true
 			else
 				trailing_semi = false
 				break
 			end
 		else
-			self.failState = {
-				type = "commandPath",
+			self.fail_state = {
+				type = "command_path",
 				path = "",
-				finish = self:getFinish(),
-				start = self:getFinish(),
+				finish = self:get_finish(),
+				start = self:get_finish(),
 			}
 			break
 		end
@@ -168,38 +170,38 @@ function Parser:parseCommands(): Commands
 		type = "commands",
 		list = list,
 		start = start,
-		finish = self:getFinish(),
+		finish = self:get_finish(),
 	}
 end
 
-function Parser:parseFunction(): Function
-	local token = self:expectToken "leftBracket"
-	local commands = self:parseCommands()
-	self:expectToken "rightBracket"
-	self.failState = nil
+function Parser:parse_function(): Function
+	local token = self:expect_token "left_bracket"
+	local commands = self:parse_commands()
+	self:expect_token "right_bracket"
+	self.fail_state = nil
 	return {
 		type = "function",
 		commands = commands,
 		start = token.start,
-		finish = self:getFinish(),
+		finish = self:get_finish(),
 	}
 end
 
-function Parser:parseSubcall(): Subcall
-	local token = self:expectToken "leftParen"
-	local commands = self:parseCommands()
-	self:expectToken "rightParen"
-	self.failState = nil
+function Parser:parse_subcall(): Subcall
+	local token = self:expect_token "left_paren"
+	local commands = self:parse_commands()
+	self:expect_token "right_paren"
+	self.fail_state = nil
 	return {
 		type = "subcall",
 		commands = commands,
 		start = token.start,
-		finish = self:getFinish(),
+		finish = self:get_finish(),
 	}
 end
 
-function Parser:parseString(): String
-	local str = self:expectToken "string"
+function Parser:parse_string(): String
+	local str = self:expect_token "string"
 	return {
 		type = "string",
 		value = str.value,
@@ -209,31 +211,42 @@ function Parser:parseString(): String
 	}
 end
 
-function Parser:parseCommand(): Node<Command>
-	local path = self:expectToken("word").raw
+function Parser:parse_incomplete_string(): String
+	local str = self:expect_token "incomplete_string"
+	return {
+		type = "string",
+		value = str.value,
+		start = str.start,
+		finish = str.finish,
+		quoted = true,
+	}
+end
+
+function Parser:parse_command(): Node<Command>
+	local path = self:expect_token("word").raw
 	if path:find "," then
 		error "path can't contain comma"
 	end
 	local args: { Expression } = {}
-	self.failState = {
-		type = "commandPath",
+	self.fail_state = {
+		type = "command_path",
 		path = path,
 		start = path.start,
-		finish = self:getFinish(),
+		finish = self:get_finish(),
 	}
 
 	while true do
-		if self.finish ~= self:getFinish() then
-			self.failState = {
-				type = "commandArguments",
+		if self.finish ~= self:get_finish() then
+			self.fail_state = {
+				type = "command_arguments",
 				path = path,
 				args = args,
 				argNum = #args + 1,
-				finish = self:getFinish(),
+				finish = self:get_finish(),
 			}
 		end
-		if self:nextIs "word" then
-			local word = self:expectToken "word"
+		if self:next_is "word" then
+			local word = self:expect_token "word"
 			-- if word.raw:match("^%d+$") then
 			-- 	table.insert(args, {
 			-- 		type = "number",
@@ -250,8 +263,8 @@ function Parser:parseCommand(): Node<Command>
 				finish = word.finish,
 			})
 			-- end
-		elseif self:nextIs "unquotedString" then
-			local token = self:expectToken "unquotedString"
+		elseif self:next_is "unquoted_string" then
+			local token = self:expect_token "unquoted_string"
 			table.insert(args, {
 				type = "string",
 				quoted = false,
@@ -259,8 +272,8 @@ function Parser:parseCommand(): Node<Command>
 				start = token.start,
 				finish = token.finish,
 			})
-		elseif self:nextIs "number" then
-			local number = self:expectToken "number"
+		elseif self:next_is "number" then
+			local number = self:expect_token "number"
 			table.insert(args, {
 				type = "string",
 				quoted = false,
@@ -268,21 +281,24 @@ function Parser:parseCommand(): Node<Command>
 				start = number.start,
 				finish = number.finish,
 			})
-		elseif self:nextIs "string" then
-			table.insert(args, self:parseString())
-		elseif self:nextIs "leftBracket" then
-			table.insert(args, self:parseFunction())
-		elseif self:nextIs "leftParen" then
-			table.insert(args, self:parseSubcall())
+		elseif self:next_is "string" then
+			table.insert(args, self:parse_string())
+		elseif self:next_is "left_bracket" then
+			table.insert(args, self:parse_function())
+		elseif self:next_is "left_paren" then
+			table.insert(args, self:parse_subcall())
+		elseif self:next_is "incomplete_string" then
+			table.insert(args, self:parse_incomplete_string())
+			error "incomplete string"
 		else
 			break
 		end
-		self.failState = {
-			type = "commandArguments",
+		self.fail_state = {
+			type = "command_arguments",
 			path = path,
 			args = args,
 			argNum = #args,
-			finish = self:getFinish(),
+			finish = self:get_finish(),
 		}
 	end
 	return {
@@ -290,25 +306,25 @@ function Parser:parseCommand(): Node<Command>
 		path = path,
 		args = args,
 		start = path.start,
-		finish = self:getFinish(),
+		finish = self:get_finish(),
 	}
 end
 
-local function parse(commandText, finishPos): (boolean, RootCommands, Parser)
+local function parse(command_text, finish_pos): (boolean, RootCommands, Parser)
 	local s1, parser = pcall(function()
-		local tokens = lex.lexUntil(commandText, finishPos or #commandText)
+		local tokens = lex.lex_until(command_text, finish_pos or #command_text)
 		return Parser.new(tokens)
 	end)
 	if not s1 then
 		return false, parser, nil :: any
 	end
 	local s2, result = pcall(function()
-		local res = parser:parseCommands()
+		local res = parser:parse_commands()
 		if parser.index ~= #parser.tokens + 1 then
-			parser.failState = nil
+			parser.fail_state = nil
 			error("expected EOF but found " .. parser.tokens[parser.index].type)
 		end
-		res.raw = commandText
+		res.raw = command_text
 		return res
 	end)
 	return s2, result, parser

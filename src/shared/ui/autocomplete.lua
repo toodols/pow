@@ -17,6 +17,9 @@ function Autocomplete(props: {
 	select: (option: Suggestion) -> (),
 	suppress_tab: () -> (),
 })
+	local suggestions_ref = React.useRef(nil)
+	local selected_item = React.useRef(nil)
+
 	React.useEffect(function()
 		if props.suggestions ~= nil then
 			local user_input_connection = UserInputService.InputBegan:Connect(function(input_obj)
@@ -47,6 +50,27 @@ function Autocomplete(props: {
 		props.index,
 	})
 
+	React.useEffect(function()
+		if
+			selected_item.current.AbsolutePosition.Y
+			> suggestions_ref.current.AbsolutePosition.Y
+				+ suggestions_ref.current.AbsoluteSize.Y
+				- selected_item.current.AbsoluteSize.Y
+		then
+			local offset = selected_item.current.AbsolutePosition.Y
+				- suggestions_ref.current.AbsolutePosition.Y
+				+ suggestions_ref.current.CanvasPosition.Y
+				- suggestions_ref.current.AbsoluteSize.Y
+				+ selected_item.current.AbsoluteSize.Y
+			suggestions_ref.current.CanvasPosition = Vector2.new(0, offset)
+		elseif selected_item.current.AbsolutePosition.Y < suggestions_ref.current.AbsolutePosition.Y then
+			local offset = selected_item.current.AbsolutePosition.Y
+				- suggestions_ref.current.AbsolutePosition.Y
+				+ suggestions_ref.current.CanvasPosition.Y
+			suggestions_ref.current.CanvasPosition = Vector2.new(0, offset)
+		end
+	end, { props.index })
+
 	local items = {}
 	if props.suggestions then
 		for sidx, suggestion in props.suggestions do
@@ -63,6 +87,7 @@ function Autocomplete(props: {
 						else Color3.fromRGB(0, 0, 0),
 					RichText = true,
 					TextXAlignment = Enum.TextXAlignment.Left,
+					ref = if sidx == props.index + 1 then selected_item else nil,
 					[React.Event.MouseButton1Down] = function()
 						props.select(suggestion)
 					end,
@@ -132,13 +157,13 @@ function Autocomplete(props: {
 			}),
 			Suggestions = if props.suggestions
 				then React.createElement("ScrollingFrame", {
-					AutomaticSize = Enum.AutomaticSize.Y,
 					LayoutOrder = 2,
 					Size = UDim2.new(1, 0, 0, 0),
 					BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 					BorderSizePixel = 0,
 					BackgroundTransparency = 0.9,
 					ScrollBarThickness = 4,
+					ref = suggestions_ref,
 				}, {
 					ListLayout = React.createElement("UIListLayout", {
 						FillDirection = Enum.FillDirection.Vertical,
