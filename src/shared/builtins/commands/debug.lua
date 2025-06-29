@@ -1,3 +1,6 @@
+local ReplicatedStorage = game:GetService "ReplicatedStorage"
+local React = require(ReplicatedStorage.Packages.react)
+
 local commands = {}
 
 commands.print = {
@@ -40,6 +43,21 @@ commands.test_quoted_enum = {
 		},
 	},
 	run = function() end,
+}
+
+commands.test_react_element = {
+	permissions = { "debug" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+	client_run = function()
+		return React.createElement("Frame", {
+			Size = UDim2.new(0, 50, 0, 50),
+		})
+	end,
 }
 
 commands.echo = {

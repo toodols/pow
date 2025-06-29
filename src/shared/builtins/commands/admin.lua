@@ -647,6 +647,7 @@ commands.clear_inventory = {
 		end
 	end,
 	overloads = {
+		{ returns = "nil", args = {} },
 		{ returns = "nil", args = { {
 			name = "Target",
 			type = "players",
@@ -1166,6 +1167,46 @@ commands.unpants = {
 			args = {},
 		},
 	},
+}
+
+commands.backpack = {
+	description = "Gets all items in a player's backpack",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "table",
+			args = {
+				{
+					name = "Player",
+					type = "player",
+				},
+			},
+		},
+	},
+	run = function(context)
+		local backpack = context.args[1].Backpack
+		return backpack:GetChildren()
+	end,
+}
+
+commands.steal = {
+	description = "Moves an item to your backpack",
+	permissions = { "admin" },
+	overloads = {
+		{
+			returns = "nil",
+			args = { {
+				name = "Tool",
+				type = "instance",
+			} },
+		},
+	},
+	server_run = function(context)
+		if not context.args[1]:IsA "Tool" then
+			error "That's not a tool"
+		end
+		context.args[1].Parent = context.executor.Backpack
+	end,
 }
 
 commands.pants = {

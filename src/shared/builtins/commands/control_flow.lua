@@ -34,6 +34,26 @@ commands["repeat"] = {
 	},
 }
 
+commands.run = {
+	description = "Runs a function",
+	permissions = { "control_flow" },
+	run = function(context)
+		local res = context.runtime.run_function(context.process, context.args[1])
+		return unwrap(res)
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Function",
+					type = "function",
+				},
+			},
+		},
+	},
+}
+
 commands["foreach"] = {
 	description = "Iterates over a table with a variable",
 	permissions = { "control_flow", "variables" },
@@ -216,6 +236,31 @@ commands.loop = {
 				name = "Body",
 				type = "function",
 			} },
+		},
+	},
+}
+
+commands.run_and_wait = {
+	description = "Runs a function (server), waits, then returns the result. Used for waiting for a newly created instance on the server to replicate to the client",
+	permissions = { "control_flow" },
+	server_run = function(context)
+		local res = unwrap(context.runtime.run_function(context.process, context.args[2]))
+		task.wait(context.args[1])
+		return res
+	end,
+	overloads = {
+		{
+			returns = "any",
+			args = {
+				{
+					name = "Seconds",
+					type = "number",
+				},
+				{
+					name = "Function",
+					type = "function",
+				},
+			},
 		},
 	},
 }

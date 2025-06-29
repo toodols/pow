@@ -68,17 +68,17 @@ function multiple(type: Type): Type
 	}
 end
 
-function instance_type(name: string, instance_type: string): Type
+function instance_type(name: string, ty: string): Type
 	return {
 		name = name,
 		coerce_expression = function(expression: Expression): Result<Instance, string>
-			return { err = "won't convert string to instance of " .. instance_type }
+			return { err = "won't convert string to instance of " .. ty }
 		end,
 		coerce_value = function(value): Result<Instance, string>
-			if typeof(value) == "Instance" and value:IsA(instance_type) then
+			if typeof(value) == "Instance" and value:IsA(ty) then
 				return { ok = value }
 			end
-			return { err = `cannot coerce {typeof(value)} to ${name}` }
+			return { err = `cannot coerce {typeof(value)} to {ty}` }
 		end,
 	}
 end
@@ -404,6 +404,7 @@ builtin_types.variable_name = {
 builtin_types.instances = multiple(builtin_types.instance)
 builtin_types.humanoid = instance_type("humanoid", "Humanoid")
 builtin_types.model = instance_type("model", "Model")
+builtin_types.pvinstance = instance_type("pvinstance", "PVInstance")
 
 -- just for autocomplete this doesn't actually check anything
 builtin_types.types = {

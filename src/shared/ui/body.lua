@@ -71,6 +71,35 @@ function Log(props: { left: string, left_color: Color3, right: string, RichText:
 	})
 end
 
+function LogEl(props: { left: string, left_color: Color3 })
+	return React.createElement("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+	}, {
+		HorizontalLayout = React.createElement("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 10),
+		}),
+		Left = React.createElement("TextLabel", {
+			Size = UDim2.new(0, 50, 0, 25),
+			-- AutomaticSize = Enum.AutomaticSize.X,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			RichText = true,
+			TextSize = 16,
+			Text = props.left,
+			LayoutOrder = 1,
+			BackgroundTransparency = 1,
+			TextColor3 = props.left_color,
+			FontFace = Font.fromName("SourceSansPro", Enum.FontWeight.Bold),
+		}),
+		Right = React.createElement("Frame", {
+			LayoutOrder = 2,
+		}, props.children),
+	})
+end
+
 function pretty(value: any, indent: number?, visited: { [string]: boolean }?): string
 	local indent_ = indent or 0
 	local visited_ = visited or {}
@@ -82,6 +111,9 @@ function pretty(value: any, indent: number?, visited: { [string]: boolean }?): s
 	elseif type(value) == "boolean" then
 		return value and "true" or "false"
 	elseif type(value) == "table" then
+		if value.type == "custom_function" then
+			return "<pow function>"
+		end
 		if visited_[tostring(value)] then
 			return "<circular>"
 		end
@@ -106,17 +138,21 @@ function pretty(value: any, indent: number?, visited: { [string]: boolean }?): s
 			end
 			return str .. indent_str .. "  }"
 		end
-	elseif type(value) == "userdata" then
-		if typeof(value) == "Instance" then
-			return value.Name
-		else
-			return "<userdata>"
-		end
+	elseif typeof(value) == "Vector3" then
+		return `Vector3.new({value.X}, {value.Y}, {value.Z})`
+	elseif typeof(value) == "UDim2" then
+		return `UDim2.new({value.X}, {value.Y})`
+	elseif typeof(value) == "Instance" then
+		return `Instance({value.Name})`
 	else
-		return "<" .. type(value) .. ">"
+		return "<" .. typeof(value) .. ">"
 	end
 end
 
+local react_symbol = React.createElement("Frame")["$$typeof"]
+function is_react_el(el)
+	return type(el) == "table" and el["$$typeof"] == react_symbol
+end
 function Body(props: { process: Process })
 	local scrolling_frame = React.useRef(nil)
 	local list_layout = React.useRef(nil)
@@ -134,6 +170,18 @@ function Body(props: { process: Process })
 				})
 			)
 		elseif log.type == "output" then
+			if is_react_el(log.value) then
+				table.insert(
+					elements,
+					React.createElement(LogEl, {
+						left_color = Color3.fromRGB(163, 163, 163),
+						left = `OUT {log.index}`,
+					}, {
+						Inner = log.value,
+					})
+				)
+				continue
+			end
 			table.insert(
 				elements,
 				React.createElement(Log, {
@@ -152,6 +200,18 @@ function Body(props: { process: Process })
 				})
 			)
 		elseif log.type == "info" then
+			if is_react_el(log.value) then
+				table.insert(
+					elements,
+					React.createElement(LogEl, {
+						left_color = Color3.fromRGB(231, 231, 231),
+						left = "INFO",
+					}, {
+						Inner = log.value,
+					})
+				)
+				continue
+			end
 			table.insert(
 				elements,
 				React.createElement(Log, {

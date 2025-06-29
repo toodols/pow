@@ -14,10 +14,12 @@ local local_player = Players.LocalPlayer
 type Process = types.Process
 type PowClient = types.PowClient
 
-function Main(props: { pow_client: PowClient })
+function Main(props: { pow_client: PowClient, ui: any })
 	local is_open, set_is_open = React.useState(false)
 	local pow_client = props.pow_client
 	local process = pow_client.tabs[pow_client.current_tab]
+	local input_ref = React.useRef(nil)
+	props.ui.input_ref = input_ref
 
 	return React.createElement("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -49,6 +51,7 @@ function Main(props: { pow_client: PowClient })
 			set_is_open = set_is_open,
 			submit_command = pow_client.submit_command,
 			process = process,
+			input_ref = input_ref,
 		}),
 	})
 end
@@ -62,13 +65,15 @@ function init_ui(pow_client)
 	root_inst.Name = "PowGui"
 	root_inst.DisplayOrder = 7
 	local root = ReactRoblox.createRoot(root_inst)
-	root:render(React.createElement(Main, { nonce = nonce, pow_client = pow_client }))
-	return {
-		update = function(new_props)
-			nonce += 1
-			root:render(React.createElement(Main, { nonce = nonce, pow_client = pow_client }))
-		end,
-	}
+	local ui = {}
+	root:render(React.createElement(Main, { nonce = nonce, pow_client = pow_client, ui = ui }))
+
+	ui.update = function(new_props)
+		nonce += 1
+		root:render(React.createElement(Main, { nonce = nonce, pow_client = pow_client, ui = ui }))
+	end
+	
+	return ui
 end
 
 return {

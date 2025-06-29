@@ -116,6 +116,9 @@ function init_client(config_: PartialConfig?)
 		process.on_log_updated = function()
 			state.ui.update(state)
 		end
+		process.set_input_text = function(text)
+			state.ui.input_ref.current.Text = text
+		end
 		state.tabs[process.id] = process
 		state.current_tab = process.id
 		return process
@@ -160,7 +163,7 @@ function init_client(config_: PartialConfig?)
 	process.logs = {
 		{
 			type = "info",
-			value = "<b>Pow - Press ESC to close</b>",
+			value = "<b>Pow</b> - Press ESC to close. Run <i>help</i> for more info",
 		},
 	}
 	state.ui = ui.init_ui(state)

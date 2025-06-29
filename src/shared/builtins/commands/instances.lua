@@ -19,6 +19,45 @@ commands.class_name = {
 	},
 }
 
+commands.pivot_to = {
+	description = "Pivots an instance to a cframe",
+	server_run = function(context)
+		context.args[1]:PivotTo(context.args[2])
+	end,
+	permissions = { "admin" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Instance",
+					type = "pvinstance",
+				},
+				{
+					name = "CFrame",
+					type = "cframe",
+				},
+			},
+		},
+	},
+}
+
+commands.part = {
+	description = "Creates a part in workspace",
+	permissions = { "admin" },
+	server_run = function(context)
+		local part = Instance.new "Part"
+		part.Parent = workspace
+		return part
+	end,
+	overloads = {
+		{
+			returns = "instance",
+			args = {},
+		},
+	},
+}
+
 commands.player = {
 	description = "Interprets value as a player",
 	permissions = { "moderator" },
@@ -46,7 +85,7 @@ commands.character = {
 	description = "Returns a player's character",
 	permissions = { "moderator" },
 	run = function(context)
-		return context.args[1] or context.executor.Character
+		return context.args[1].Character or context.executor.Character
 	end,
 	overloads = {
 		{
@@ -103,7 +142,7 @@ commands.humanoid = {
 	},
 }
 
-commands.move_to = {
+commands.character_move_to = {
 	description = "Makes a character move to a position",
 	permissions = { "moderator" },
 	server_run = function(context)
@@ -151,12 +190,19 @@ commands.move_to = {
 }
 
 commands.equipped = {
-	description = "Returns the equipped tool",
+	description = "Returns a player's tool",
 	permissions = { "moderator" },
 	run = function(context)
-		return context.executor.Backpack:FindFirstChildWhichIsA "Tool"
+		return (context.args[1] or context.executor).Character:FindFirstChildWhichIsA "Tool"
 	end,
 	overloads = {
+		{
+			returns = "instance",
+			args = { {
+				name = "Player",
+				type = "player",
+			} },
+		},
 		{
 			returns = "instance",
 			args = {},

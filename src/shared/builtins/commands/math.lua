@@ -43,6 +43,73 @@ commands.add_vec3 = {
 	},
 }
 
+commands.x_axis = {
+	description = "Returns the unit vector for positive x",
+	permissions = { "math" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+	run = function()
+		return Vector3.xAxis
+	end,
+}
+
+commands.y_axis = {
+	description = "Returns the unit vector for positive x",
+	permissions = { "math" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+	run = function()
+		return Vector3.yAxis
+	end,
+}
+commands.z_axis = {
+	description = "Returns the unit vector for positive x",
+	permissions = { "math" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+	run = function()
+		return Vector3.zAxis
+	end,
+}
+
+commands.component = {
+	description = "Scalar projection of 2 vectors: component (vector3 3 2 1) (x_axis) => 3",
+	alias = { "comp" },
+	permissions = { "math" },
+	overloads = {
+		{
+			returns = "vector3",
+			args = {
+				{
+					name = "a",
+					type = "vector3",
+				},
+				{
+					name = "b",
+					type = "vector3",
+				},
+			},
+		},
+	},
+	run = function(context)
+		local u: Vector3 = context.args[1]
+		local v: Vector3 = context.args[2]
+		return u:Dot(v.Unit)
+	end,
+}
+
 commands.as = {
 	description = "Casts a string to a type",
 	permissions = { "math" },

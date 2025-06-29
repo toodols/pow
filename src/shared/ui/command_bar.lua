@@ -63,6 +63,10 @@ local function overloads(func, selected)
 		end
 		overload_text ..= i .. ". ("
 		for j, arg in overload.args do
+			if type(j) == "string" then
+				error(j)
+			end
+
 			if j > 1 then
 				overload_text ..= ", "
 			end
@@ -85,8 +89,9 @@ function CommandBar(props: {
 	set_is_open: (open: boolean) -> (),
 	submit_command: (commandText: string) -> (),
 	process: Process,
+	input_ref: any,
 })
-	local input_ref = React.useRef(nil)
+	local input_ref = props.input_ref
 	local offset, set_offset = React.useState(0)
 	local autocomplete, set_autocomplete = React.useState {
 		enabled = false,

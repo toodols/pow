@@ -1,10 +1,12 @@
+local UserInputService = game:GetService "UserInputService"
+local RunService = game:GetService "RunService"
 local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local Players = game:GetService "Players"
+local React = require(ReplicatedStorage.Packages.react)
+local util = require(script.Parent.util)
 local parser = require(script.Parent.parser)
 local types = require(script.Parent.types)
 local typing = require(script.typing)
-local UserInputService = game:GetService "UserInputService"
-local RunService = game:GetService "RunService"
 
 type Commands = parser.Commands
 type Command = parser.Command
@@ -151,6 +153,10 @@ function run_lua_function(
 		executor = process.owner,
 		data = data,
 		runtime = runtime,
+		React = React,
+		parser = parser,
+		util = util,
+		typing = typing,
 		log = function(self, log: Log)
 			if RunService:IsClient() then
 				table.insert(self.process.logs, log)
