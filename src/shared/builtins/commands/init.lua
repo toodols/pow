@@ -299,6 +299,29 @@ builtin_commands.unbind = {
 		},
 	},
 }
+
+builtin_commands.commands = {
+	alias = { "cmds" },
+	description = "Lists commands",
+	permissions = {},
+	client_run = function(context: Context)
+		local text = ""
+		for _, f in context.process.global_scope.functions.functions do
+			text ..= `{f.name} - {f.description}\n`
+		end
+		context:log {
+			type = "info",
+			value = text,
+		}
+	end,
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+	},
+}
+
 builtin_commands.get_run_context = {
 	description = "Returns whether this command is being ran on the server or the client",
 	permissions = { "moderator" },

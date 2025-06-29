@@ -166,10 +166,10 @@ local function lex(text)
 	return lex_until(text, #text)
 end
 
-function test()
-	local result = lex(`print 123 "hello`)
-	print(result)
-end
-test()
+-- function test()
+-- 	local result = lex(`print 123 "hello`)
+-- 	print(result)
+-- end
+-- test()
 
 return { lex = lex, lex_until = lex_until }

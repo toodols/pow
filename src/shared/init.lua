@@ -65,7 +65,6 @@ function init_client(config_: PartialConfig?)
 		if type == "client_request" then
 			local func = client_requests[data.type]
 			if func then
-				print(data.args)
 				return func(unpack(data.args))
 			else
 				error("no client request " .. data.type)

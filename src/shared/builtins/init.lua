@@ -88,7 +88,7 @@ function builtin_client_requests.set_flying(new_val: boolean)
 		)
 		local render_conn = RunService.RenderStepped:Connect(function()
 			if move_vector.Magnitude > 0 then
-				align_position.Position = align_position.Position + root_part.CFrame:VectorToWorldSpace(move_vector)
+				align_position.Position = root_part.Position + root_part.CFrame:VectorToWorldSpace(move_vector)
 			end
 			align_orientation.CFrame = camera.CFrame
 		end)
