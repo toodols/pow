@@ -6,6 +6,7 @@ local TextService = game:GetService "TextService"
 local parser = require(script.Parent.Parent.parser)
 local types = require(script.Parent.Parent.types)
 local runtime = require(script.Parent.Parent.runtime)
+local util = require(script.Parent.Parent.util)
 
 type Process = types.Process
 type Subcall = parser.Subcall
@@ -129,20 +130,18 @@ function CommandBar(props: {
 				return
 			end
 			for name, func in props.process.global_scope.functions.functions do
-				if name:sub(1, #fail_state.path):lower() == fail_state.path:lower() then
-					table.insert(suggestions, {
-						text = name,
-						replace_at = fail_state.finish - #fail_state.path + 1,
-						match_start = 1,
-						match_end = #fail_state.path,
-						title = func.name,
-						description = `{func.description}\n\n{overloads(func)}`,
-					})
-				end
+				table.insert(suggestions, {
+					text = name,
+					replace_at = fail_state.finish - #fail_state.path + 1,
+					match_start = 1,
+					match_end = #fail_state.path,
+					title = func.name,
+					description = `{func.description}\n\n{overloads(func)}`,
+				})
 			end
 			set_autocomplete {
 				enabled = true,
-				suggestions = suggestions,
+				suggestions = util.search(suggestions, fail_state.path),
 				title = "Command",
 				type = "command",
 				description = "Command to run",
@@ -237,6 +236,16 @@ function CommandBar(props: {
 			local suggestions = {}
 			if ty_obj.autocomplete ~= nil then
 				suggestions = ty_obj.autocomplete(text, replace_at, props.process)
+				for _, suggestion in suggestions do
+					local is_word = suggestion.text:match "^[a-zA-Z0-9%_-%.$,@]+$" ~= nil
+					if not is_word then
+						if suggestion.display_text == nil then
+							suggestions.display_text = suggestion.text
+						end
+						suggestion.value = suggestion.text
+						suggestion.text = `"{suggestion.text}"`
+					end
+				end
 			elseif ty_obj.autocomplete_simple ~= nil then
 				local values = {}
 				if typeof(ty_obj.autocomplete_simple) == "function" then
@@ -244,18 +253,17 @@ function CommandBar(props: {
 				else
 					values = ty_obj.autocomplete_simple
 				end
+				local all_suggestions = {}
 				for _, value in values do
-					if value:sub(1, #text):lower() == text:lower() then
-						local is_word = value:match "^[a-zA-Z0-9%_-%.$,@]+$" ~= nil
-						table.insert(suggestions, {
-							replace_at = replace_at,
-							display_text = value,
-							text = if is_word then value else `"{value}"`,
-							match_start = 1,
-							match_end = #text,
-						})
-					end
+					local is_word = value:match "^[a-zA-Z0-9%_-%.$,@]+$" ~= nil
+					table.insert(all_suggestions, {
+						replace_at = replace_at,
+						display_text = value,
+						value = value,
+						text = if is_word then value else `"{value}"`,
+					})
 				end
+				suggestions = util.search(all_suggestions, text)
 			end
 
 			if suggestions == nil then

@@ -241,7 +241,7 @@ function run_command(process: Process, command: Command, state: State): Result<a
 		return coerced_res
 	end
 	if coerced_res.ok == nil then
-		return { err = "no overload found" }
+		return { err = "failed to coerce: ...??" }
 	end
 	return run_function(process, fun, coerced_res.ok)
 end

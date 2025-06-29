@@ -120,18 +120,21 @@ commands.ban = {
 				{
 					name = "Duration",
 					type = "number",
-					description = "Ban duration in seconds. Set to -1 for permanent",
+					description = "Duration of the ban, in seconds. Permanent bans should have a value of <b>-1</b>. <b>0</b> and all other negative values are invalid",
 				},
 				{
 					name = "Display Reason",
+					description = "The message that will be displayed to users when they attempt to and fail to join an experience. Maximum string length is <b>400</b>",
 					type = "string",
 				},
 				{
 					name = "Private Reason",
+					description = "Internal messaging that will be returned when querying the user's ban history. Maximum string length is <b>1000</b>.",
 					type = "string",
 				},
 				{
 					name = "Exclude Alt Accounts",
+					description = "When <b>true</b>, Roblox does not attempt to ban alt accounts.",
 					type = "boolean",
 				},
 			},

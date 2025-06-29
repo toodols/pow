@@ -51,6 +51,9 @@ function Autocomplete(props: {
 	})
 
 	React.useEffect(function()
+		if selected_item.current == nil or suggestions_ref.current == nil then
+			return
+		end
 		if
 			selected_item.current.AbsolutePosition.Y
 			> suggestions_ref.current.AbsolutePosition.Y
@@ -144,13 +147,16 @@ function Autocomplete(props: {
 						Size = UDim2.new(1, 0, 0, 25),
 						TextColor3 = Color3.fromRGB(255, 255, 255),
 						Text = props.description or "No description",
+						TextWrapped = true,
 						RichText = true,
+						AutomaticSize = Enum.AutomaticSize.Y,
 						BackgroundTransparency = 0.5,
 						BorderSizePixel = 0,
 						BackgroundColor3 = Color3.fromRGB(0, 0, 0),
 					}, {
 						LeftPadding = React.createElement("UIPadding", {
 							PaddingLeft = UDim.new(0, 10),
+							PaddingBottom = UDim.new(0, 10),
 						}),
 					})
 					else nil,
@@ -170,7 +176,7 @@ function Autocomplete(props: {
 						SortOrder = Enum.SortOrder.LayoutOrder,
 						[React.Change.AbsoluteContentSize] = function(self)
 							self.Parent.CanvasSize = UDim2.new(0, 0, 0, self.AbsoluteContentSize.Y)
-							self.Parent.Size = UDim2.new(1, 0, 0, math.clamp(self.AbsoluteContentSize.Y, 10, 100))
+							self.Parent.Size = UDim2.new(1, 0, 0, math.clamp(self.AbsoluteContentSize.Y, 10, 150))
 						end,
 					}),
 				}, items)
@@ -210,6 +216,7 @@ function Autocomplete(props: {
 						TextXAlignment = Enum.TextXAlignment.Left,
 						LayoutOrder = 2,
 						RichText = true,
+						TextWrapped = true,
 						AutomaticSize = Enum.AutomaticSize.XY,
 						Size = UDim2.new(0, 0, 0, 25),
 						TextColor3 = Color3.fromRGB(255, 255, 255),

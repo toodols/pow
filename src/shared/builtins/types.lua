@@ -1,7 +1,7 @@
 local Players = game:GetService "Players"
 local parser = require(script.Parent.Parent.parser)
 local types = require(script.Parent.Parent.types)
-
+local util = require(script.Parent.Parent.util)
 type Expression = parser.Expression
 type Type = types.Type
 type Result<T, E> = types.Result<T, E>
@@ -184,21 +184,20 @@ builtin_types.player = {
 		return { err = `Cannot coerce {typeof(value)} to player` }
 	end,
 	autocomplete = function(text: string, replace_at: number, process: Process)
-		if text:lower() == ("@me"):sub(1, math.max(1, #text)):lower() then
-			return {
+		local suggestions = {}
+		if text:sub(1, 1) == "@" then
+			suggestions = {
 				{
 					text = "@me",
 					replace_at = replace_at,
 					match_start = 1,
 					match_end = #text,
-					display_text = `@me ({Players.LocalPlayer.Name})`,
+					display_text = `@me`,
 				},
 			}
-		end
-		local matches = {}
-		for _, player in Players:GetPlayers() do
-			if player.Name:sub(1, #text):lower() == text:lower() then
-				table.insert(matches, {
+		else
+			for _, player in Players:GetPlayers() do
+				table.insert(suggestions, {
 					text = player.Name,
 					display_text = if player.Name == player.DisplayName
 						then player.Name
@@ -209,7 +208,7 @@ builtin_types.player = {
 				})
 			end
 		end
-		return matches
+		return util.search(suggestions, text)
 	end,
 }
 builtin_types["function"] = {
@@ -293,17 +292,12 @@ builtin_types.players = {
 			}
 			local matches = {}
 			for _, value in values do
-				if value:sub(1, #last_frag):lower() ~= last_frag:lower() then
-					continue
-				end
 				table.insert(matches, {
 					replace_at = replace_at + last_comma,
 					text = value,
-					match_start = 1,
-					match_end = #last_frag,
 				})
 			end
-			return matches
+			return util.search(matches, last_frag)
 		end
 		return (builtin_types.player.autocomplete :: (...any) -> any)(last_frag, replace_at + last_comma, process)
 	end,
@@ -397,16 +391,14 @@ builtin_types.variable_name = {
 	autocomplete = function(text, replace_at, process)
 		local matches = {}
 		for k in process.global_scope.variables do
-			if k:sub(1, #text):lower() == text:lower() then
-				table.insert(matches, {
-					replace_at = replace_at,
-					text = k,
-					match_start = 1,
-					match_end = #text,
-				})
-			end
+			table.insert(matches, {
+				replace_at = replace_at,
+				text = k,
+				match_start = 1,
+				match_end = #text,
+			})
 		end
-		return matches
+		return util.search(matches, text)
 	end,
 }
 builtin_types.instances = multiple(builtin_types.instance)
@@ -479,16 +471,14 @@ builtin_types.keycode = {
 		local matches = {}
 		for _, keycode in Enum.KeyCode:GetEnumItems() do
 			local k = keycode.Name
-			if k:sub(1, #text):lower() == text:lower() then
-				table.insert(matches, {
-					replace_at = replace_at,
-					text = k,
-					match_start = 1,
-					match_end = #text,
-				})
-			end
+			table.insert(matches, {
+				replace_at = replace_at,
+				text = k,
+				match_start = 1,
+				match_end = #text,
+			})
 		end
-		return matches
+		return util.search(matches, text)
 	end,
 }
 builtin_types.test_quoted_enum = {

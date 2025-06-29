@@ -1,5 +1,6 @@
 local types = require(script.Parent.types)
 type Config = types.Config
+type Suggestion = types.Suggestion
 
 function expand_permissions(permissions: { [string]: { string } })
 	local expanded = {}
@@ -202,7 +203,38 @@ function apply_prototypes(functions_by_id, functions_namespace, function_prototy
 	end
 end
 
+function search<T>(candidates: { Suggestion }, query: string): { Suggestion }
+	local ok = {}
+	local new_candidates: { Suggestion } = {}
+	for _, candidate in candidates do
+		local v = candidate.value or candidate.text
+		if v:lower() == query:lower() then
+			candidate.match_start = 1
+			candidate.match_end = #query
+			table.insert(ok, 1, candidate)
+		elseif v:lower():sub(1, #query) == query:lower() then
+			candidate.match_start = 1
+			candidate.match_end = #query
+			table.insert(ok, candidate)
+		else
+			table.insert(new_candidates, candidate)
+		end
+	end
+	for _, candidate in new_candidates do
+		local v = candidate.value or candidate.text
+		local s, e = v:lower():find(query)
+		if s == nil then
+			continue
+		end
+		candidate.match_start = s
+		candidate.match_end = e
+		table.insert(ok, candidate)
+	end
+	return ok
+end
+
 return {
+	search = search,
 	expand_permissions = expand_permissions,
 	has_permission = has_permission,
 	get_user_permission_and_rank = get_user_permission_and_rank,
