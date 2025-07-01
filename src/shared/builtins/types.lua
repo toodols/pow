@@ -190,8 +190,6 @@ builtin_types.player = {
 				{
 					text = "@me",
 					replace_at = replace_at,
-					match_start = 1,
-					match_end = #text,
 					display_text = `@me`,
 				},
 			}
@@ -203,8 +201,6 @@ builtin_types.player = {
 						then player.Name
 						else `{player.Name} ({player.DisplayName})`,
 					replace_at = replace_at,
-					match_start = 1,
-					match_end = #text,
 				})
 			end
 		end
@@ -394,8 +390,6 @@ builtin_types.variable_name = {
 			table.insert(matches, {
 				replace_at = replace_at,
 				text = k,
-				match_start = 1,
-				match_end = #text,
 			})
 		end
 		return util.search(matches, text)
@@ -442,8 +436,6 @@ builtin_types.permission = {
 				table.insert(matches, {
 					replace_at = replace_at,
 					text = k,
-					match_start = 1,
-					match_end = #text,
 				})
 			end
 		end
@@ -475,8 +467,6 @@ builtin_types.keycode = {
 			table.insert(matches, {
 				replace_at = replace_at,
 				text = k,
-				match_start = 1,
-				match_end = #text,
 			})
 		end
 		return util.search(matches, text)
@@ -495,6 +485,130 @@ builtin_types.test_quoted_enum = {
 		`easy`,
 		`more`,
 	},
+}
+
+builtin_types.gearid = {
+	name = "gearid",
+	coerce_expression = function(expression: Expression): Result<number, string>
+		if expression.type == "string" then
+			local value = tonumber(expression.value)
+			if value == nil then
+				return { err = "not a number" }
+			end
+			return { ok = value }
+		elseif expression.type == "function" then
+			return { err = "cannot coerce function to number" }
+		end
+		error "unreachable"
+	end,
+	coerce_value = function(value): Result<number, string>
+		if typeof(value) == "number" then
+			return { ok = value }
+		elseif typeof(value) == "string" then
+			local num = tonumber(value)
+			if num == nil then
+				return { err = "not a number" }
+			end
+			return { ok = num }
+		end
+		return { err = `cannot coerce {typeof(value)} to number` }
+	end,
+	autocomplete = function(text, replace_at, process)
+		local matches = {}
+		local gears = {
+			{
+				125013769,
+				"Linked Sword",
+			},
+			{
+				16688968,
+				"Gravity Coil",
+			},
+			{
+				10472779,
+				"Bloxy Cola",
+			},
+			{
+				225921000,
+				"Rainbow Magic Carpet",
+			},
+			{
+				212296936,
+				"Red Hyperlaser Gun",
+			},
+			{
+				130113146,
+				"Hyperlaser Gun",
+			},
+			{
+				11999247,
+				"Subspace Tripmine",
+			},
+			{
+				99119158,
+				"Speed Coil",
+			},
+			{
+				83704165,
+				"Icedagger",
+			},
+			{
+				16726030,
+				"Cheezburger",
+			},
+			{
+				22596452,
+				"Pepperoni Pizza",
+			},
+			{
+				116040770,
+				"Flashlight",
+			},
+			{
+				78730532,
+				"Body Swap Potion",
+			},
+			{
+				111876831,
+				"April Showers",
+			},
+			{
+				113328094,
+				"Lightblox Jar",
+			},
+			{
+				67747912,
+				"Heat Seeking Missile Launcher",
+			},
+			{
+				115377964,
+				"Laser Finger Pointers",
+			},
+			{
+				11419882,
+				"Red Stratobloxxer",
+			},
+			{
+				10727852,
+				"Witches Brew",
+			},
+			{ 16722267, "Moneybag" },
+			{ 81154592, "Firebrand" },
+			{ 68603324, "Venomshank" },
+			{ 16641274, "Illumina" },
+			{ 37816777, "Ghostwalker" },
+			{ 16895215, "Darkheart" },
+			{ 77443704, "Windforce" },
+		}
+		for _, gear in gears do
+			table.insert(matches, {
+				replace_at = replace_at,
+				text = tostring(gear[1]),
+				display_text = `{gear[1]} ({gear[2]})`,
+			})
+		end
+		return util.search(matches, text)
+	end,
 }
 
 return {

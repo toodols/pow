@@ -7,6 +7,7 @@ local shared = script.shared
 local util = require(script.shared.util)
 local runtime = require(script.shared.runtime)
 local types = require(script.shared.types)
+local remote_mod = require(script.shared.remote)
 
 type PartialConfig = types.PartialConfig
 type Config = types.Config
@@ -51,6 +52,8 @@ function init(config_: PartialConfig)
 	local remote = Instance.new "RemoteFunction"
 	remote.Parent = ReplicatedStorage
 	remote.Name = "Pow"
+
+	remote_mod.remote = remote
 
 	-- have the remote ready before requiring builtins
 	local builtins = require(script.shared.builtins)

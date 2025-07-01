@@ -36,6 +36,10 @@ local builtin_client_requests = {}
 
 local flying_cleanup = function() end
 
+function builtin_client_requests.send_message(text: string)
+	game.TextChatService.TextChannels.RBXGeneral:SendAsync(text)
+end
+
 function builtin_client_requests.set_flying(new_val: boolean)
 	flying_cleanup()
 	if new_val then

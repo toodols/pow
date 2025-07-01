@@ -1,13 +1,11 @@
 local Players = game:GetService "Players"
 local InsertService = game:GetService "InsertService"
-local ReplicatedStorage = game:GetService "ReplicatedStorage"
 local DataStoreService = game:GetService "DataStoreService"
 
+local get_remote = require(script.Parent.Parent.Parent.remote).get_remote
 local util = require(script.Parent.Parent.Parent.util)
 local types = require(script.Parent.Parent.Parent.types)
 type Config = types.Config
-
-local pow_remote = ReplicatedStorage:FindFirstChild "Pow"
 
 local commands = {}
 commands.view_permissions = {
@@ -79,7 +77,7 @@ commands.set_permission = {
 		local player_permission = util.get_user_permission_and_rank(context.process.config.permissions, target.UserId)
 		-- print("context.process.config", context.process.config)
 		-- print("player_permission", player_permission)
-		pow_remote:InvokeClient(
+		get_remote():InvokeClient(
 			target,
 			"config_updated",
 			util.serialize_config(context.process.config, player_permission)
@@ -206,6 +204,251 @@ commands.morph_user = {
 	end,
 }
 
+commands.heal = {
+	description = "Heals players",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Amount",
+				type = "number",
+			} },
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Players",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+				{
+					name = "Amount",
+					type = "number",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local targets
+		local amount
+		if type(context.args[1]) == "number" then
+			targets = { context.executor }
+			amount = context.args[1]
+		else
+			targets = context.args[1]
+			if context.args[2] ~= nil then
+				amount = context.args[2]
+			end
+		end
+		for _, player in targets do
+			if not player.Character then
+				continue
+			end
+			local humanoid: Humanoid = player.Character:FindFirstChildOfClass "Humanoid"
+			if not humanoid then
+				continue
+			end
+			humanoid.Health += amount
+		end
+	end,
+}
+
+commands.damage = {
+	description = "Damages players",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Amount",
+				type = "number",
+			} },
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Players",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+				{
+					name = "Amount",
+					type = "number",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local targets
+		local amount
+		if type(context.args[1]) == "number" then
+			targets = { context.executor }
+			amount = context.args[1]
+		else
+			targets = context.args[1]
+			if context.args[2] ~= nil then
+				amount = context.args[2]
+			end
+		end
+		for _, player in targets do
+			if not player.Character then
+				continue
+			end
+			local humanoid: Humanoid = player.Character:FindFirstChildOfClass "Humanoid"
+			if not humanoid then
+				continue
+			end
+			humanoid:TakeDamage(amount)
+		end
+	end,
+}
+
+commands.set_health = {
+	alias = { "health" },
+	description = "Sets the health of players",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Health",
+				type = "number",
+			} },
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Players",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+				{
+					name = "Health",
+					type = "number",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local targets
+		local amount
+		if type(context.args[1]) == "number" then
+			targets = { context.executor }
+			amount = context.args[1]
+		else
+			targets = context.args[1]
+			if context.args[2] ~= nil then
+				amount = context.args[2]
+			end
+		end
+		for _, player in targets do
+			if not player.Character then
+				continue
+			end
+			local humanoid: Humanoid = player.Character:FindFirstChildOfClass "Humanoid"
+			if not humanoid then
+				continue
+			end
+			humanoid.Health = amount
+		end
+	end,
+}
+
+commands.max_health = {
+	description = "Sets the max health of players",
+	permissions = { "moderator" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {},
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Max Health",
+				type = "number",
+			} },
+		},
+		{
+			returns = "nil",
+			args = { {
+				name = "Players",
+				type = "players",
+			} },
+		},
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Players",
+					type = "players",
+				},
+				{
+					name = "Max Health",
+					type = "number",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		local targets
+		local amount
+		if type(context.args[1]) == "number" then
+			targets = { context.executor }
+			amount = context.args[1]
+		else
+			targets = context.args[1]
+			if context.args[2] ~= nil then
+				amount = context.args[2]
+			end
+		end
+		for _, plr in targets do
+			if not plr.Character then
+				continue
+			end
+			local hum = plr.Character:FindFirstChildOfClass "Humanoid"
+			if not hum then
+				continue
+			end
+			hum.MaxHealth = amount
+		end
+	end,
+}
+
 commands.fly = {
 	description = "Fly",
 	permissions = { "moderator" },
@@ -224,7 +467,7 @@ commands.fly = {
 	server_run = function(context)
 		local players = context.args[1] or { context.executor }
 		for _, player in players do
-			pow_remote:InvokeClient(player, "client_request", {
+			get_remote():InvokeClient(player, "client_request", {
 				type = "set_flying",
 				args = { true },
 			})
@@ -250,7 +493,7 @@ commands.unfly = {
 	server_run = function(context)
 		local players = context.args[1] or { context.executor }
 		for _, player in players do
-			pow_remote:InvokeClient(player, "client_request", {
+			get_remote():InvokeClient(player, "client_request", {
 				type = "set_flying",
 				args = { false },
 			})
@@ -330,7 +573,7 @@ commands.sudo = {
 		if not util.compare_ranks(context.process.config.permissions, context.executor, context.args[1]) then
 			error "You can't use sudo on this player"
 		end
-		local result = pow_remote:InvokeClient(context.args[1], "run_command", {
+		local result = get_remote():InvokeClient(context.args[1], "run_command", {
 			["function"] = context.args[2],
 		})
 		if result.ok then
@@ -379,6 +622,33 @@ commands.kill = {
 	},
 }
 
+commands.chat_as = {
+	description = "Chats as a player",
+	permissions = { "admin" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "Player",
+					type = "player",
+				},
+				{
+					name = "Message",
+					type = "string",
+				},
+			},
+		},
+	},
+	server_run = function(context)
+		context.remote:InvokeClient(
+			context.args[1],
+			"client_request",
+			{ type = "send_message", args = { context.args[2] } }
+		)
+	end,
+}
+
 -- commands.leaderstat = {
 -- 	description = ""
 -- }
@@ -412,7 +682,7 @@ commands.gear = {
 				},
 				{
 					name = "Gear Id",
-					type = "number",
+					type = "gearid",
 				},
 			},
 		},
@@ -420,7 +690,7 @@ commands.gear = {
 			returns = "nil",
 			args = { {
 				name = "Gear Id",
-				type = "number",
+				type = "gearid",
 			} },
 		},
 	},

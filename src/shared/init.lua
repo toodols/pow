@@ -6,6 +6,7 @@ local runtime = require(script.runtime)
 local types = require(script.types)
 local builtins = require(script.builtins)
 local util = require(script.util)
+local remote_mod = require(script.remote)
 
 type PowClient = types.PowClient
 type Type = types.Type
@@ -15,11 +16,12 @@ type PartialConfig = types.PartialConfig
 function init_client(config_: PartialConfig?)
 	local remote
 	if config_ == nil then
-		remote = ReplicatedStorage:WaitForChild "Pow"
+		remote = ReplicatedStorage:FindFirstChild "Pow"
 		if not remote or not remote:IsA "RemoteFunction" then
 			error "can't find pow remote"
 			return
 		end
+		remote_mod.remote = remote
 		config_ = remote:InvokeServer "get_config"
 	end
 	if config_ == nil then

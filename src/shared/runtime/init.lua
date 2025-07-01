@@ -7,6 +7,7 @@ local util = require(script.Parent.util)
 local parser = require(script.Parent.parser)
 local types = require(script.Parent.types)
 local typing = require(script.typing)
+local get_remote = require(script.Parent.remote).get_remote
 
 type Commands = parser.Commands
 type Command = parser.Command
@@ -77,8 +78,7 @@ function run_function(process: Process, fun: Function, args: { any }?, data: any
 			if fun.client_run then
 				return run_lua_function(process, fun.id, fun.client_run, args, data)
 			elseif fun.server_run ~= nil then
-				local pow_remote = ReplicatedStorage.Pow
-				local result = pow_remote:InvokeServer(
+				local result = get_remote():InvokeServer(
 					"server_run",
 					{ process_id = process.id, function_id = fun.id, args = args, data = data }
 				)
@@ -90,8 +90,7 @@ function run_function(process: Process, fun: Function, args: { any }?, data: any
 			if fun.server_run then
 				return run_lua_function(process, fun.id, fun.server_run, args, data)
 			else
-				local pow_remote = ReplicatedStorage.Pow
-				return pow_remote:InvokeClient(process.owner, "client_run", {
+				return get_remote():InvokeClient(process.owner, "client_run", {
 					process_id = process.id,
 					function_id = fun.id,
 					args = args,
@@ -151,6 +150,7 @@ function run_lua_function(
 		process = process,
 		args = args,
 		executor = process.owner,
+		remote = get_remote(),
 		data = data,
 		runtime = runtime,
 		React = React,
@@ -162,8 +162,7 @@ function run_lua_function(
 				table.insert(self.process.logs, log)
 				self.process.on_log_updated()
 			elseif RunService:IsServer() then
-				local pow_remote = ReplicatedStorage.Pow
-				pow_remote:InvokeClient(self.executor, "log", {
+				get_remote():InvokeClient(self.executor, "log", {
 					process_id = self.process.id,
 					log = log,
 				})
@@ -171,16 +170,15 @@ function run_lua_function(
 		end,
 		-- defers a command to run on the server now
 		defer = function(self)
-			local pow_remote = ReplicatedStorage.Pow
 			if RunService:IsClient() then
-				return pow_remote:InvokeServer("server_run", {
+				return get_remote():InvokeServer("server_run", {
 					process_id = process.id,
 					function_id = fn_id,
 					data = self.data,
 					args = args,
 				})
 			elseif RunService:IsServer() then
-				return pow_remote:InvokeClient(self.executor, "client_run", {
+				return get_remote():InvokeClient(self.executor, "client_run", {
 					process_id = process.id,
 					function_id = fn_id,
 					data = self.data,

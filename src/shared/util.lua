@@ -207,7 +207,7 @@ function search<T>(candidates: { Suggestion }, query: string): { Suggestion }
 	local ok = {}
 	local new_candidates: { Suggestion } = {}
 	for _, candidate in candidates do
-		local v = candidate.value or candidate.text
+		local v = candidate.display_text or candidate.text
 		if v:lower() == query:lower() then
 			candidate.match_start = 1
 			candidate.match_end = #query
@@ -219,9 +219,12 @@ function search<T>(candidates: { Suggestion }, query: string): { Suggestion }
 		else
 			table.insert(new_candidates, candidate)
 		end
+		if #ok > 20 then
+			return ok
+		end
 	end
 	for _, candidate in new_candidates do
-		local v = candidate.value or candidate.text
+		local v = candidate.display_text or candidate.text
 		local s, e = v:lower():find(query)
 		if s == nil then
 			continue
@@ -229,6 +232,10 @@ function search<T>(candidates: { Suggestion }, query: string): { Suggestion }
 		candidate.match_start = s
 		candidate.match_end = e
 		table.insert(ok, candidate)
+
+		if #ok > 20 then
+			return ok
+		end
 	end
 	return ok
 end
