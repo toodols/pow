@@ -260,7 +260,7 @@ commands.heal = {
 			if not humanoid then
 				continue
 			end
-			humanoid.Health += amount
+			humanoid.Health += amount or (humanoid.MaxHealth - humanoid.Health)
 		end
 	end,
 }
@@ -271,20 +271,9 @@ commands.damage = {
 	overloads = {
 		{
 			returns = "nil",
-			args = {},
-		},
-		{
-			returns = "nil",
 			args = { {
 				name = "Amount",
 				type = "number",
-			} },
-		},
-		{
-			returns = "nil",
-			args = { {
-				name = "Players",
-				type = "players",
 			} },
 		},
 		{
@@ -309,9 +298,7 @@ commands.damage = {
 			amount = context.args[1]
 		else
 			targets = context.args[1]
-			if context.args[2] ~= nil then
-				amount = context.args[2]
-			end
+			amount = context.args[2]
 		end
 		for _, player in targets do
 			if not player.Character then
@@ -333,20 +320,9 @@ commands.set_health = {
 	overloads = {
 		{
 			returns = "nil",
-			args = {},
-		},
-		{
-			returns = "nil",
 			args = { {
 				name = "Health",
 				type = "number",
-			} },
-		},
-		{
-			returns = "nil",
-			args = { {
-				name = "Players",
-				type = "players",
 			} },
 		},
 		{
@@ -371,9 +347,7 @@ commands.set_health = {
 			amount = context.args[1]
 		else
 			targets = context.args[1]
-			if context.args[2] ~= nil then
-				amount = context.args[2]
-			end
+			amount = context.args[2]
 		end
 		for _, player in targets do
 			if not player.Character then
@@ -394,20 +368,9 @@ commands.max_health = {
 	overloads = {
 		{
 			returns = "nil",
-			args = {},
-		},
-		{
-			returns = "nil",
 			args = { {
 				name = "Max Health",
 				type = "number",
-			} },
-		},
-		{
-			returns = "nil",
-			args = { {
-				name = "Players",
-				type = "players",
 			} },
 		},
 		{
@@ -432,9 +395,7 @@ commands.max_health = {
 			amount = context.args[1]
 		else
 			targets = context.args[1]
-			if context.args[2] ~= nil then
-				amount = context.args[2]
-			end
+			amount = context.args[2]
 		end
 		for _, plr in targets do
 			if not plr.Character then
