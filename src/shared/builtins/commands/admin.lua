@@ -243,7 +243,9 @@ commands.heal = {
 	server_run = function(context)
 		local targets
 		local amount
-		if type(context.args[1]) == "number" then
+		if context.args[1] == nil then
+			targets = { context.executor }
+		elseif type(context.args[1]) == "number" then
 			targets = { context.executor }
 			amount = context.args[1]
 		else
