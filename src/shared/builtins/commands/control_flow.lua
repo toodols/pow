@@ -94,7 +94,7 @@ commands["client"] = {
 	description = "Forces a function to run in client context",
 	permissions = { "control_flow" },
 	client_run = function(context)
-		return context.runtime.run_function(context.process, context.args[1])
+		return unwrap(context.runtime.run_function(context.process, context.args[1]))
 	end,
 	overloads = {
 		{
@@ -169,9 +169,9 @@ commands["if"] = {
 	permissions = { "control_flow" },
 	run = function(context)
 		if context.args[1] then
-			return context.runtime.run_function(context.process, context.args[2])
+			return unwrap(context.runtime.run_function(context.process, context.args[2]))
 		elseif context.args[3] then
-			return context.runtime.run_function(context.process, context.args[3])
+			return unwrap(context.runtime.run_function(context.process, context.args[3]))
 		end
 		return nil
 	end,
