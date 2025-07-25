@@ -8,6 +8,7 @@ local util = require(script.shared.util)
 local runtime = require(script.shared.runtime)
 local types = require(script.shared.types)
 local remote_mod = require(script.shared.remote)
+local parser = require(script.shared.parser)
 
 type PartialConfig = types.PartialConfig
 type Config = types.Config
@@ -104,16 +105,21 @@ function init(config_: PartialConfig)
 	local extras: { commands: { [string]: any }, types: { [string]: any }, permission_types: { [string]: any } } =
 		{ commands = {}, types = {}, permission_types = {}, client_requests = {} }
 
+	local modules = {
+		util = util,
+		runtime = runtime,
+		parser = parser,
+	}
 	if config.extras_shared then
 		for _, extra in config.extras_shared do
-			require(extra)(extras)
+			require(extra)(extras, modules)
 		end
 	end
 
 	local server_extras = { commands = {}, types = {}, permission_types = {} }
 	if config.extras_server then
 		for _, extra in config.extras_server do
-			require(extra)(server_extras)
+			require(extra)(server_extras, modules)
 		end
 	end
 	table.insert(functions_to_register, extras.commands)
