@@ -151,6 +151,9 @@ function deep_equal(a: any, b: any): boolean
 end
 
 function reload_commands(functions_by_id, functions_namespace, commands_to_register, user_permissions: any?)
+	for name in functions_by_id do
+		functions_by_id[name] = nil
+	end
 	functions_namespace.functions = {}
 	for _, commands in commands_to_register do
 		for name, command in commands do

@@ -238,14 +238,14 @@ function CommandBar(props: {
 				return
 			end
 
-			local suggestions = {}
+			local suggestions: { types.Suggestion } = {}
 			if ty_obj.autocomplete ~= nil then
 				suggestions = ty_obj.autocomplete(text, replace_at, props.process)
 				for _, suggestion in suggestions do
 					local is_word = suggestion.text:match "^[a-zA-Z0-9%_-%.$,@]+$" ~= nil
 					if not is_word then
 						if suggestion.display_text == nil then
-							suggestions.display_text = suggestion.text
+							suggestion.display_text = suggestion.text
 						end
 						suggestion.value = suggestion.text
 						suggestion.text = `"{suggestion.text}"`
@@ -268,7 +268,7 @@ function CommandBar(props: {
 						text = if is_word then value else `"{value}"`,
 					})
 				end
-				suggestions = util.search(all_suggestions, text)
+				suggestions = util.search(all_suggestions :: any, text)
 			end
 
 			if suggestions == nil then

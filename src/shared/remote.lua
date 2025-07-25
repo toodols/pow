@@ -1,4 +1,6 @@
-local module = {}
+local module = {} :: {
+	remote: RemoteFunction,
+}
 module.get_remote = function(): RemoteFunction
 	return module.remote
 end
