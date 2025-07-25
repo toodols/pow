@@ -5,20 +5,20 @@ type Commands = parser.Commands
 export type Log = {
 	type: "input",
 	-- from: Player,
-	at: number,
+	at: number?,
 	value: string,
 } | {
 	type: "output",
-	at: number,
+	at: number?,
 	value: Value,
 } | {
 	type: "error",
-	at: number,
+	at: number?,
 	value: string,
 } | {
 	type: "info",
-	at: number,
-	value: string,
+	at: number?,
+	value: any,
 }
 
 export type Process = {
@@ -31,6 +31,7 @@ export type Process = {
 	types: { [string]: Type },
 	logs: { Log },
 	on_log_updated: () -> (),
+	set_input_text: (text: string) -> (),
 	history: { string },
 	parent: Process?,
 	server: any?,
@@ -53,9 +54,10 @@ export type Suggestion = {
 export type Type = {
 	name: string,
 	description: string?,
-	coerce_expression: (Expression, Process) -> any,
-	coerce_value: (any, Process) -> any,
-	autocomplete: ((search: string, replace_at: number, process: Process) -> { Suggestion }) | { string } | nil,
+	coerce_expression: ((Expression, Process) -> any)?,
+	coerce_value: ((any, Process) -> any)?,
+	autocomplete: (((search: string, replace_at: number, process: Process) -> { Suggestion }) | { string } | nil)?,
+	autocomplete_simple: { string }?,
 }
 
 export type Param = {
@@ -108,6 +110,9 @@ export type Context = {
 	data: { any },
 	args: { any },
 	defer: () -> (),
+	log: (self: Context, log: Log) -> (),
+	React: any,
+	runtime: any,
 }
 
 export type State = {

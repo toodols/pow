@@ -160,9 +160,9 @@ builtin_types.number = {
 		return { err = `cannot coerce {typeof(value)} to number` }
 	end,
 }
-builtin_types.player = {
+local player_type = {
 	name = "player",
-	coerce_expression = function(expression: Expression): Result<Player, string>
+	coerce_expression = function(expression: Expression, process: Process): Result<Player, string>
 		if expression.type == "string" then
 			if expression.value == "@me" then
 				return { ok = Players.LocalPlayer }
@@ -177,7 +177,7 @@ builtin_types.player = {
 		end
 		error "unreachable"
 	end,
-	coerce_value = function(value): Result<Player, string>
+	coerce_value = function(value: unknown, process: Process): Result<Player, string>
 		if typeof(value) == "Instance" and value:IsA "Player" then
 			return { ok = value }
 		end
@@ -207,6 +207,7 @@ builtin_types.player = {
 		return util.search(suggestions, text)
 	end,
 }
+builtin_types.player = player_type
 builtin_types["function"] = {
 	name = "function",
 	coerce_expression = function(expression: Expression): Result<any, string>
@@ -245,7 +246,7 @@ builtin_types.players = {
 						end
 					end
 				else
-					local coerced = builtin_types.player.coerce_expression({ type = "string", value = frag }, process)
+					local coerced = player_type.coerce_expression({ type = "string", value = frag }, process)
 					if coerced.err then
 						return { err = coerced.err }
 					end
@@ -263,7 +264,7 @@ builtin_types.players = {
 		if typeof(value) == "table" then
 			local coerced_values = {}
 			for _, val in value do
-				local coerced = builtin_types.player.coerce_value(val, process)
+				local coerced = player_type.coerce_value(val, process)
 				if coerced.err then
 					return { err = coerced.err }
 				end
@@ -473,6 +474,7 @@ builtin_types.keycode = {
 	end,
 }
 builtin_types.test_quoted_enum = {
+	name = "test_quoted_enum",
 	autocomplete_simple = {
 		`hello world`,
 		`yes please`,

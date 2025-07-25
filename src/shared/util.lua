@@ -206,7 +206,16 @@ function apply_prototypes(functions_by_id, functions_namespace, function_prototy
 	end
 end
 
-function search<T>(candidates: { Suggestion }, query: string): { Suggestion }
+type PartialSuggestion = {
+	text: string,
+	display_text: string?,
+	replace_at: number,
+	match_start: number?,
+	match_end: number?,
+	title: string?,
+	description: string?,
+}
+function search<T>(candidates: { PartialSuggestion }, query: string): { Suggestion }
 	local ok = {}
 	local new_candidates: { Suggestion } = {}
 	for _, candidate in candidates do

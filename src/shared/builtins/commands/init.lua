@@ -79,6 +79,7 @@ builtin_commands.help = {
 		end
 
 		local function HelpMenu()
+			local executor = context.executor :: Player
 			return React.createElement("Frame", {
 				AutomaticSize = Enum.AutomaticSize.XY,
 				BackgroundTransparency = 0.95,
@@ -174,7 +175,7 @@ builtin_commands.help = {
 					}
 				),
 				Runnable4 = React.createElement(Runnable, {
-					text = `speed {context.executor.Name} (add 20 10)`,
+					text = `speed {executor.Name} (add 20 10)`,
 					LayoutOrder = 100,
 				}),
 				P6 = React.createElement(
@@ -186,7 +187,7 @@ builtin_commands.help = {
 					}
 				),
 				Runnable5 = React.createElement(Runnable, {
-					text = `speed {context.executor.Name} (mul (add 1 5) (add 3 3))`,
+					text = `speed {executor.Name} (mul (add 1 5) (add 3 3))`,
 					LayoutOrder = 120,
 				}),
 

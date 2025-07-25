@@ -40,14 +40,19 @@ function init_client(config_: PartialConfig?)
 	local state = { tabs = {} } :: PowClient
 
 	local extras = { commands = {}, types = {}, permission_types = {}, client_requests = {} }
+	local modules = {
+		util = util,
+		runtime = runtime,
+		parser = parser,
+	}
 	if config.extras_client then
 		for _, client_extra in config.extras_client do
-			require(client_extra)(extras)
+			require(client_extra)(extras, modules)
 		end
 	end
 	if config.extras_shared then
 		for _, shared_extra in config.extras_shared do
-			require(shared_extra)(extras)
+			require(shared_extra)(extras, modules)
 		end
 	end
 
