@@ -489,6 +489,20 @@ builtin_types.test_quoted_enum = {
 	},
 }
 
+builtin_types.test_longer_display = {
+	name = "test_longer_display",
+	autocomplete = function(text, replace_at, process)
+		local suggestions = {
+			{
+				text = "short",
+				replace_at = replace_at,
+				display_text = "short (much longer)",
+			},
+		}
+		return util.search(suggestions, text)
+	end,
+}
+
 builtin_types.gearid = {
 	name = "gearid",
 	coerce_expression = function(expression: Expression): Result<number, string>

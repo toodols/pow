@@ -425,7 +425,11 @@ function CommandBar(props: {
 				select = function(option)
 					local new_text = input_ref.current.Text:sub(1, option.replace_at - 1)
 						.. option.text
-						.. input_ref.current.Text:sub(option.replace_at + option.text:len() + 1)
+						.. input_ref.current.Text:sub(
+							-- math.max(option.replace_at + option.text:len(),
+							input_ref.current.CursorPosition
+							-- )
+						)
 					input_ref.current.Text = new_text
 					input_ref.current.CursorPosition = option.replace_at + option.text:len()
 				end,

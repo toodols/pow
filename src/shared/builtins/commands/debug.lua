@@ -29,6 +29,21 @@ commands.print = {
 	},
 }
 
+commands.test_longer_display = {
+	permissions = { "debug" },
+	overloads = {
+		{
+			returns = "nil",
+			args = {
+				{
+					name = "...",
+					type = "test_longer_display",
+				},
+			},
+		},
+	},
+	run = function() end,
+}
 commands.test_quoted_enum = {
 	permissions = { "debug" },
 	overloads = {
