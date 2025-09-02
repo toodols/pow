@@ -433,14 +433,12 @@ builtin_types.permission = {
 	autocomplete = function(text, replace_at, process)
 		local matches = {}
 		for k in (process.config.expanded_permission_types or process.config.user_permissions) do
-			if k:sub(1, #text):lower() == text:lower() then
-				table.insert(matches, {
-					replace_at = replace_at,
-					text = k,
-				})
-			end
+			table.insert(matches, {
+				replace_at = replace_at,
+				text = k,
+			})
 		end
-		return matches
+		return util.search(matches, text)
 	end,
 }
 builtin_types.keycode = {
